@@ -1,0 +1,350 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-10T20:33:56Z",
+  "title": "Design System: O Que Quero Fazer",
+  "extensions": {
+    "colorMeta": {
+      "forest-night": {
+        "role": "neutral",
+        "displayName": "Verde noturno",
+        "canonical": "#111410",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#232423",
+          "#3e413d",
+          "#5b5f5a",
+          "#7b7f79",
+          "#9ca09a",
+          "#c3c5c2",
+          "#eeeeee"
+        ]
+      },
+      "warm-paper": {
+        "role": "neutral",
+        "displayName": "Papel antigo",
+        "canonical": "#eeece4",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252422",
+          "#41403a",
+          "#5f5e57",
+          "#7f7d76",
+          "#a09e97",
+          "#c5c4c0",
+          "#eeeeee"
+        ]
+      },
+      "muted-sage": {
+        "role": "neutral",
+        "displayName": "Sálvia suave",
+        "canonical": "#9c9f93",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242521",
+          "#3f4138",
+          "#5c5f54",
+          "#7c7f73",
+          "#9da094",
+          "#c3c5bf",
+          "#eeeeee"
+        ]
+      },
+      "sand": {
+        "role": "primary",
+        "displayName": "Areia",
+        "canonical": "#d4a977",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#2f2110",
+          "#57380e",
+          "#7b5523",
+          "#9d7444",
+          "#bf9667",
+          "#d6c0a8",
+          "#eeeeee"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Linha translúcida",
+        "canonical": "rgba(239, 238, 230, 0.09)",
+        "tonalRamp": [
+          "rgba(239, 238, 230, 0.02)",
+          "rgba(239, 238, 230, 0.04)",
+          "rgba(239, 238, 230, 0.06)",
+          "rgba(239, 238, 230, 0.09)",
+          "rgba(239, 238, 230, 0.12)",
+          "rgba(239, 238, 230, 0.18)",
+          "rgba(239, 238, 230, 0.24)",
+          "rgba(239, 238, 230, 0.32)"
+        ]
+      },
+      "focus-sand": {
+        "role": "primary",
+        "displayName": "Areia de foco",
+        "canonical": "#e7bd8e",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#2e2112",
+          "#563913",
+          "#7a5528",
+          "#9c7548",
+          "#bd966a",
+          "#d5c0a9",
+          "#eeeeee"
+        ]
+      },
+      "sand-hover": {
+        "role": "primary",
+        "displayName": "Areia em hover",
+        "canonical": "#e2bb8d",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#2e2112",
+          "#553915",
+          "#78562a",
+          "#9a764a",
+          "#bb976c",
+          "#d4c1aa",
+          "#eeeeee"
+        ]
+      },
+      "card-surface": {
+        "role": "neutral",
+        "displayName": "Superfície de card",
+        "canonical": "#20231d",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#232422",
+          "#3e413b",
+          "#5b5f58",
+          "#7b7f77",
+          "#9ca098",
+          "#c3c5c1",
+          "#eeeeee"
+        ]
+      },
+      "field-surface": {
+        "role": "neutral",
+        "displayName": "Superfície de campo",
+        "canonical": "#191c18",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#232423",
+          "#3e413d",
+          "#5b5f5a",
+          "#7b7f79",
+          "#9ca09b",
+          "#c3c5c2",
+          "#eeeeee"
+        ]
+      },
+      "dialog-surface": {
+        "role": "neutral",
+        "displayName": "Superfície de diálogo",
+        "canonical": "#1a1d19",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#232423",
+          "#3e413d",
+          "#5b5f5a",
+          "#7b7f79",
+          "#9ca09b",
+          "#c3c5c2",
+          "#eeeeee"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Serifada editorial",
+        "purpose": "Títulos de hero e chamadas prioritárias."
+      },
+      "headline": {
+        "displayName": "Título de seção",
+        "purpose": "Hierarquia de coleções e diálogos."
+      },
+      "title": {
+        "displayName": "Título de atividade",
+        "purpose": "Nome de cada item da lista."
+      },
+      "body": {
+        "displayName": "Sans-serif de interface",
+        "purpose": "Descrições, campos e texto operacional."
+      },
+      "label": {
+        "displayName": "Rótulo compacto",
+        "purpose": "Eyebrows, estados e metadados."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card-rest",
+        "value": "0 17px 44px rgba(0, 0, 0, 0.16)",
+        "purpose": "Separação discreta do card no canvas escuro."
+      },
+      {
+        "name": "card-expanded",
+        "value": "0 23px 54px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(215, 183, 142, 0.06)",
+        "purpose": "Dar foco ao card aberto sem elevar toda a coleção."
+      },
+      {
+        "name": "dialog",
+        "value": "0 30px 110px rgba(0, 0, 0, 0.58)",
+        "purpose": "Separar o formulário modal do conteúdo ao fundo."
+      }
+    ],
+    "motion": [
+      {
+        "name": "control-standard",
+        "value": "200ms ease-out",
+        "purpose": "Hover e foco de botões e controles."
+      },
+      {
+        "name": "card-expand",
+        "value": "520ms cubic-bezier(0.2, 0.8, 0.2, 1)",
+        "purpose": "Expansão horizontal suave no desktop."
+      },
+      {
+        "name": "dialog-enter",
+        "value": "180ms ease-out",
+        "purpose": "Entrada curta do diálogo."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact",
+        "value": "390px"
+      },
+      {
+        "name": "mobile",
+        "value": "700px"
+      },
+      {
+        "name": "tablet",
+        "value": "980px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Principal ação para adicionar uma atividade.",
+      "html": "<button type=\"button\" class=\"ds-button ds-button-primary\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><path d=\"M12 5v14M5 12h14\"/></svg>Nova atividade</button>",
+      "css": ".ds-button{display:inline-flex;min-height:44px;align-items:center;justify-content:center;gap:8px;padding:10px 16px;border:1px solid transparent;border-radius:12px;font:500 14px Arial,Helvetica,sans-serif;cursor:pointer;transition:background-color .2s ease,border-color .2s ease,color .2s ease}\n.ds-button-primary{border-color:#d4a977;background:#d4a977;color:#171915}\n.ds-button-primary:hover{border-color:#e2bb8d;background:#e2bb8d}\n.ds-button:focus-visible{outline:0;box-shadow:0 0 0 2px #121411,0 0 0 4px #e7bd8e}\n.ds-button:disabled{pointer-events:none;opacity:.5}\n.ds-button svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Ação complementar com preenchimento translúcido.",
+      "html": "<button type=\"button\" class=\"ds-button ds-button-secondary\">Exportar</button>",
+      "css": ".ds-button{display:inline-flex;min-height:44px;align-items:center;justify-content:center;gap:8px;padding:10px 16px;border:1px solid transparent;border-radius:12px;font:500 14px Arial,Helvetica,sans-serif;cursor:pointer;transition:background-color .2s ease,border-color .2s ease,color .2s ease}\n.ds-button-secondary{border-color:rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:#efeee8}\n.ds-button-secondary:hover{border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.1)}\n.ds-button:focus-visible{outline:0;box-shadow:0 0 0 2px #121411,0 0 0 4px #e7bd8e}\n.ds-button:disabled{pointer-events:none;opacity:.5}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Ação secundária sem superfície própria.",
+      "html": "<button type=\"button\" class=\"ds-button ds-button-ghost\">Cancelar</button>",
+      "css": ".ds-button{display:inline-flex;min-height:44px;align-items:center;justify-content:center;gap:8px;padding:10px 16px;border:1px solid transparent;border-radius:12px;font:500 14px Arial,Helvetica,sans-serif;cursor:pointer;transition:background-color .2s ease,border-color .2s ease,color .2s ease}\n.ds-button-ghost{background:transparent;color:#c7c8bf}\n.ds-button-ghost:hover{background:rgba(255,255,255,.07);color:#fff}\n.ds-button:focus-visible{outline:0;box-shadow:0 0 0 2px #121411,0 0 0 4px #e7bd8e}"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Variante de baixa ênfase para ação destrutiva.",
+      "html": "<button type=\"button\" class=\"ds-button ds-button-danger\">Excluir</button>",
+      "css": ".ds-button{display:inline-flex;min-height:44px;align-items:center;justify-content:center;padding:10px 16px;border:1px solid rgba(253,164,175,.15);border-radius:12px;font:500 14px Arial,Helvetica,sans-serif;cursor:pointer;transition:background-color .2s ease,border-color .2s ease,color .2s ease}\n.ds-button-danger{background:rgba(253,164,175,.08);color:#fecdd3}\n.ds-button-danger:hover{background:rgba(253,164,175,.16)}\n.ds-button:focus-visible{outline:0;box-shadow:0 0 0 2px #121411,0 0 0 4px #e7bd8e}"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "search-field",
+      "description": "Busca integrada ao painel de filtros.",
+      "html": "<label class=\"ds-search\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m20 20-4-4\"/></svg><input type=\"search\" placeholder=\"Buscar uma ideia...\" /></label>",
+      "css": ".ds-search{display:flex;width:220px;align-items:center;gap:9px;color:#858a7f}\n.ds-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#e9e7df;font:12px Arial,Helvetica,sans-serif}\n.ds-search input::placeholder{color:#73796f}\n.ds-search:focus-within{color:#dab487}\n.ds-search svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}"
+    },
+    {
+      "name": "Category Filter Chip",
+      "kind": "chip",
+      "refersTo": "category-filter-active",
+      "description": "Filtro selecionável para uma categoria da lista.",
+      "html": "<button type=\"button\" aria-pressed=\"true\" class=\"ds-chip ds-chip-active\">Livros</button>",
+      "css": ".ds-chip{min-height:32px;padding:0 10px;border:1px solid transparent;border-radius:10px;background:transparent;color:#999d91;font:11px Arial,Helvetica,sans-serif;cursor:pointer;transition:background-color .16s ease,color .16s ease,border-color .16s ease}\n.ds-chip:hover{color:#eeece5}\n.ds-chip-active{border-color:rgba(211,177,135,.13);background:rgba(211,177,135,.1);color:#e4c39c}"
+    },
+    {
+      "name": "Navigation Header",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "Marca e ações da lista em uma única barra.",
+      "html": "<header class=\"ds-topbar\"><a class=\"ds-brand\" href=\"#\"><span class=\"ds-brand-mark\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><path d=\"M11 20A7 7 0 0 1 4 13c0-6 8-9 16-9 0 8-3 16-9 16Z\" /><path d=\"M8 16c2-2 5-5 9-8\" /></svg></span><span>o que quero fazer<span class=\"ds-brand-dot\">.</span></span></a><nav class=\"ds-actions\" aria-label=\"Ações da lista\"><button class=\"ds-nav-button\">Exportar</button><button class=\"ds-nav-button\">Importar</button><button class=\"ds-button ds-button-primary\">Nova atividade</button></nav></header>",
+      "css": ".ds-topbar{display:flex;min-height:82px;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(239,238,230,.09)}\n.ds-brand{display:inline-flex;align-items:center;gap:10px;color:#ece9df;font:16px Georgia,\"Times New Roman\",serif;letter-spacing:-.025em;text-decoration:none}\n.ds-brand-mark{display:grid;width:30px;height:30px;place-items:center;border:1px solid rgba(212,169,119,.25);border-radius:50%;background:rgba(212,169,119,.07);color:#d7ad7b;font:12px Arial,sans-serif}\n.ds-brand-dot{color:#d4a977}\n.ds-actions{display:flex;align-items:center;gap:6px}\n.ds-nav-button{border:0;background:transparent;color:#c7c8bf;font:12px Arial,sans-serif}\n.ds-nav-button{min-height:34px;padding:7px 8px;border:0;border-radius:9px;background:transparent;color:#c7c8bf;font:12px Arial,sans-serif;cursor:pointer;transition:background-color .2s ease,color .2s ease}\r\n.ds-nav-button:hover{background:rgba(255,255,255,.07);color:#fff}\r\n.ds-button{min-height:36px;padding:6px 12px;border:1px solid #d4a977;border-radius:12px;background:#d4a977;color:#171915;font:500 12px Arial,sans-serif;cursor:pointer;transition:background-color .2s ease,border-color .2s ease}\r\n.ds-button:hover{border-color:#e2bb8d;background:#e2bb8d}\r\n.ds-nav-button:focus-visible,.ds-button:focus-visible{outline:2px solid #e7bd8e;outline-offset:2px}\r\n.ds-brand-mark svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}"
+    },
+    {
+      "name": "Activity Card",
+      "kind": "card",
+      "refersTo": "activity-card",
+      "description": "Card expansível com categoria, status e título.",
+      "html": "<article class=\"ds-card\"><button class=\"ds-card-cover\" type=\"button\"><span class=\"ds-card-top\"><span class=\"ds-card-category\">Livros</span><span class=\"ds-card-status ds-status-planned\">Quero fazer</span></span><span class=\"ds-card-bottom\"><span class=\"ds-card-title\">Atividade</span><span class=\"ds-card-description\">Uma ideia guardada para depois.</span></span></button></article>",
+      "css": ".ds-card{display:flex;min-width:152px;height:27rem;overflow:hidden;border:1px solid rgba(236,234,225,.12);border-radius:21px;background:#20231d;box-shadow:0 17px 44px rgba(0,0,0,.16)}\n.ds-card-cover{display:flex;width:100%;flex:1;flex-direction:column;justify-content:space-between;padding:18px;border:0;border-radius:20px;background:radial-gradient(ellipse at 18% 5%,rgba(184,143,95,.23),transparent 53%),linear-gradient(135deg,#34382f 0%,#252820 56%,#181b17 100%);color:#f4f1e9;text-align:left}\n.ds-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}\n.ds-card-category,.ds-card-status{display:inline-flex;min-height:26px;align-items:center;padding:0 9px;border:1px solid rgba(255,255,255,.09);border-radius:999px;background:rgba(16,18,16,.46);color:#e3c79e;font:10px Arial,sans-serif;backdrop-filter:blur(12px)}\n.ds-card-bottom{display:flex;flex-direction:column;align-items:flex-start;gap:8px}\n.ds-card-title{color:#f3f0e8;font:400 clamp(17px,1.7vw,24px)/1.1 Georgia,\"Times New Roman\",serif;letter-spacing:-.035em}\n.ds-card-description{max-width:540px;color:rgba(238,236,226,.79);font:12px/1.55 Arial,sans-serif}\n.ds-card:hover .ds-card-cover{filter:saturate(1.08) brightness(1.05)}\n.ds-card.is-expanded{border-color:rgba(215,183,142,.4);box-shadow:0 23px 54px rgba(0,0,0,.3),0 0 0 1px rgba(215,183,142,.06)}\r\n.ds-status-planned{color:#e3c79e}.ds-status-progress{color:#c2dce4}.ds-status-done{color:#c6dfc1}\r\n.ds-card-cover:focus-visible{outline:2px solid #e7bd8e;outline-offset:-5px}"
+    },
+    {
+      "name": "Activity Dialog",
+      "kind": "custom",
+      "refersTo": "activity-dialog",
+      "description": "Formulário modal para criar ou editar uma atividade.",
+      "html": "<dialog open class=\"ds-dialog\"><div class=\"ds-dialog-content\"><span class=\"ds-eyebrow\">UM LUGAR PARA O QUE VEM AÍ</span><h2>Nova atividade</h2><label class=\"ds-field\"><span>Título</span><input placeholder=\"Ex.: Ler Cem Anos de Solidão\" /></label><button class=\"ds-button ds-button-primary\">Adicionar à lista</button></div></dialog>",
+      "css": ".ds-dialog{width:min(650px,calc(100% - 30px));max-height:90vh;padding:0;overflow:auto;border:1px solid rgba(232,216,191,.14);border-radius:22px;background:#1a1d19;color:#eeece5;box-shadow:0 30px 110px rgba(0,0,0,.58)}\n.ds-dialog::backdrop{background:rgba(6,8,6,.77);backdrop-filter:blur(7px)}\n.ds-dialog-content{padding:25px 27px 23px}\n.ds-eyebrow{color:#a79374;font:700 8px Arial,sans-serif;letter-spacing:.17em}\n.ds-dialog h2{margin:7px 0 22px;font:400 27px Georgia,\"Times New Roman\",serif;letter-spacing:-.04em}\n.ds-field{display:flex;flex-direction:column;gap:7px;color:#d4d3ca;font:11px Arial,sans-serif}\n.ds-field input{min-height:42px;padding:10px 12px;border:1px solid rgba(237,234,224,.11);border-radius:10px;background:rgba(255,255,255,.035);color:#eceae2;font:12px Arial,sans-serif}\n.ds-field input:focus{border-color:rgba(222,184,136,.55);outline:2px solid #e7bd8e;outline-offset:2px}\n.ds-dialog .ds-button{margin-top:18px}\r\n.ds-button{display:inline-flex;min-height:44px;align-items:center;justify-content:center;padding:10px 16px;border:1px solid #d4a977;border-radius:12px;background:#d4a977;color:#171915;font:500 14px Arial,sans-serif;cursor:pointer;transition:background-color .2s ease,border-color .2s ease}\r\n.ds-button:hover{border-color:#e2bb8d;background:#e2bb8d}\r\n.ds-button:focus-visible{outline:0;box-shadow:0 0 0 2px #121411,0 0 0 4px #e7bd8e}"
+    },
+    {
+      "name": "Empty State",
+      "kind": "custom",
+      "refersTo": "empty-state",
+      "description": "Convite central para começar a coleção.",
+      "html": "<section class=\"ds-empty\"><span class=\"ds-empty-icon\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><path d=\"m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z\" /><path d=\"m19 14 1 2.5 2.5 1-2.5 1L19 21l-1-2.5-2.5-1 2.5-1L19 14Z\" /></svg></span><span class=\"ds-empty-eyebrow\">TODA GRANDE JORNADA COMEÇA COM UMA IDEIA</span><h3>O que você quer viver?</h3><p>Guarde aqui o que faz seus olhos brilharem.</p><button class=\"ds-button ds-button-primary\">Adicionar primeira atividade</button></section>",
+      "css": ".ds-empty{display:flex;min-height:363px;flex-direction:column;align-items:center;justify-content:center;padding:37px 20px 44px;border:1px dashed rgba(225,218,203,.17);border-radius:21px;background:radial-gradient(ellipse at 50% 40%,rgba(109,104,82,.11),transparent 47%),rgba(255,255,255,.012);text-align:center}\n.ds-empty-icon{display:grid;width:54px;height:54px;place-items:center;margin:0 0 19px;border:1px solid rgba(219,183,136,.34);border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(216,182,136,.23),rgba(216,182,136,.04));color:#e2c49d;box-shadow:0 0 35px rgba(207,170,123,.12);font:24px Georgia,serif}\n.ds-empty-eyebrow{margin:0 0 9px;color:#9f947e;font:700 8px Arial,sans-serif;letter-spacing:.16em}\n.ds-empty h3{margin:0;color:#eeece4;font:400 28px Georgia,\"Times New Roman\",serif;letter-spacing:-.04em}\n.ds-empty p{max-width:485px;margin:9px 0 19px;color:#92968b;font:12px/1.7 Arial,sans-serif}\n.ds-empty .ds-button{min-height:42px}\r\n.ds-empty-icon svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}\r\n.ds-button{display:inline-flex;min-height:44px;align-items:center;justify-content:center;padding:10px 16px;border:1px solid #d4a977;border-radius:12px;background:#d4a977;color:#171915;font:500 14px Arial,sans-serif;cursor:pointer;transition:background-color .2s ease,border-color .2s ease}\r\n.ds-button:hover{border-color:#e2bb8d;background:#e2bb8d}\r\n.ds-button:focus-visible{outline:0;box-shadow:0 0 0 2px #121411,0 0 0 4px #e7bd8e}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Caderno de possibilidades",
+    "overview": "O sistema trata cada atividade como uma possibilidade que pode ser guardada e retomada. O tom é explorador e contemplativo: a base verde noturna e o texto papel antigo criam silêncio visual; a areia destaca ações e palavras-chave. A serifada dá presença editorial aos títulos, enquanto a sans-serif mantém busca, filtros e formulários práticos.\n\nA página se organiza em uma coluna central que liga marca e ações, hero, resumo de status e coleção. Pequenos sinais de bússola, órbitas, folha e faíscas sugerem descoberta sem competir com as atividades. Bordas finas e variações tonais separam a maior parte das superfícies; sombras aparecem como apoio no estado expandido dos cards e no diálogo.",
+    "keyCharacteristics": [
+      "Fundo verde noturno, texto em papel antigo e areia em pontos de ação.",
+      "Serifada editorial nos títulos, contrastada com sans-serif neutra nos controles.",
+      "Tom explorador e contemplativo, com elementos de descoberta em escala pequena.",
+      "Profundidade quase plana, guiada por bordas e mudanças tonais.",
+      "Cards expansíveis que mantêm a lista como foco."
+    ],
+    "rules": [
+      {
+        "name": "The Sand Accent Rule",
+        "body": "Reserve a areia para a ação principal, foco e destaques breves; não a transforme em preenchimento amplo.",
+        "section": "colors"
+      },
+      {
+        "name": "The Status Tint Rule",
+        "body": "Mantenha os tons azulados e vegetais ligados à leitura do status das atividades, sem usá-los como acentos de marca.",
+        "section": "colors"
+      },
+      {
+        "name": "The Edge-Led Depth Rule",
+        "body": "Use bordas e variações tonais como separação padrão; reserve a elevação mais forte ao card expandido e ao diálogo.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do mantenha o canvas escuro e use superfícies ligeiramente distintas para controles, cards e diálogos.",
+      "Do reserve a areia para a ação principal, o foco e destaques curtos; mantenha as tintas de status ligadas ao progresso.",
+      "Do combine títulos serifados com sans-serif nos filtros, campos e controles.",
+      "Do use bordas finas como principal separação entre superfícies e permita expansão inline dos cards."
+    ],
+    "donts": [
+      "Don't espalhe sombras fortes por todas as seções nem transforme cada grupo em um painel flutuante.",
+      "Don't estenda as cores de status a áreas amplas ou a elementos de marca.",
+      "Don't literalize Caderno como textura de papel ou ornamento de papelaria; a metáfora atual é expressa por tipografia editorial e uma coleção de ideias."
+    ]
+  }
+}

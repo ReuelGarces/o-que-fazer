@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# O Que Quero Fazer
 
-## Getting Started
+Uma lista pessoal para guardar atividades que ainda quero viver, aprender e realizar. Nesta primeira fase, todos os dados ficam no navegador, em `localStorage`.
 
-First, run the development server:
+## Começar
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abra [http://localhost:3000](http://localhost:3000). Para validar o bundle de produção, use `npm run build`; para conferir o código, use `npm run lint`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## O que está disponível
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Criar, editar, excluir e atualizar o status de atividades.
+- Categorias: Livros, Filmes e séries, Cursos, Projetos, Lugares e Outros.
+- Busca por título, filtros por categoria e status e cards expansíveis.
+- Imagem e link externo opcionais.
+- Exportação e importação de um arquivo JSON versionado. A importação valida os registros e pede confirmação antes de substituir a lista atual.
 
-## Learn More
+## Persistência e backup
 
-To learn more about Next.js, take a look at the following resources:
+A chave `o-que-quero-fazer:activities:v1` guarda registros com ID, categoria, status e datas ISO. A camada de acesso fica em `lib/activities.ts`; a interface usa funções para ler, criar, atualizar, remover e validar os dados. Uma implementação SQLite futura pode substituir essas funções sem alterar os componentes visuais.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+O armazenamento é local ao perfil do navegador e dispositivo. Limpar os dados do navegador pode remover a lista; exporte backups JSON para guardá-la ou transferi-la. Não há conta, sincronização, servidor ou recuperação automática.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Estrutura principal
 
-## Deploy on Vercel
+- `app/`: rota principal, metadados e estilos responsivos.
+- `components/activities-app.tsx`: página interativa, formulários, filtros e backup.
+- `components/ui/`: botão reutilizável e cards expansíveis.
+- `lib/activities.ts`: modelo, validação e acesso ao `localStorage`.
+- `lib/utils.ts`: utilitário `cn` para classes compatíveis com shadcn/ui.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+As categorias e os estados definidos no MVP estão em `lib/activities.ts`. A interface não inclui backend, login ou APIs.
