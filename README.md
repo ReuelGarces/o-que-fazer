@@ -1,36 +1,80 @@
-# O Que Quero Fazer
 
-Uma lista pessoal para guardar atividades que ainda quero viver, aprender e realizar. Nesta primeira fase, todos os dados ficam no navegador, em `localStorage`.
+# O que fazer?
 
-## Começar
+Uma aplicação web para organizar ideias de coisas que você quer viver, aprender ou realizar.
+
+Cadastre livros, filmes, cursos, projetos, lugares e outras atividades, acompanhe seu progresso e transforme ideias em experiências.
+
+## Funcionalidades
+
+- Cadastro, edição e exclusão de atividades
+- Categorias: Livros, Filmes e séries, Cursos, Projetos, Lugares e Outros
+- Status: Quero fazer, Em andamento e Concluído
+- Pesquisa por título e filtros combinados
+- Cards interativos com detalhes
+- Resumo de atividades por status
+- Exportação e importação de backups JSON
+- Interface responsiva em português
+
+## Tecnologias
+
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+
+## Executando localmente
+
+**Requisitos:** Node.js 20.9 ou superior e npm.
+
+Clone o repositório:
 
 ```bash
-npm install
+git clone https://github.com/ReuelGarces/o-que-fazer.git
+cd o-que-fazer
+```
+
+Instale as dependências:
+
+```bash
+npm ci
+```
+
+Inicie o ambiente de desenvolvimento:
+
+```bash
 npm run dev
 ```
 
-Abra [http://localhost:3000](http://localhost:3000). Para validar o bundle de produção, use `npm run build`; para conferir o código, use `npm run lint`.
+Acesse http://localhost:3000.
 
-## O que está disponível
+## Verificações
 
-- Criar, editar, excluir e atualizar o status de atividades.
-- Categorias: Livros, Filmes e séries, Cursos, Projetos, Lugares e Outros.
-- Busca por título, filtros por categoria e status e cards expansíveis.
-- Imagem e link externo opcionais.
-- Exportação e importação de um arquivo JSON versionado. A importação valida os registros e pede confirmação antes de substituir a lista atual.
+```bash
+npm run lint
+npm run build
+```
 
-## Persistência e backup
+## Armazenamento
 
-A chave `o-que-quero-fazer:activities:v1` guarda registros com ID, categoria, status e datas ISO. A camada de acesso fica em `lib/activities.ts`; a interface usa funções para ler, criar, atualizar, remover e validar os dados. Uma implementação SQLite futura pode substituir essas funções sem alterar os componentes visuais.
+A versão atual utiliza `localStorage` para salvar os dados no navegador.
 
-O armazenamento é local ao perfil do navegador e dispositivo. Limpar os dados do navegador pode remover a lista; exporte backups JSON para guardá-la ou transferi-la. Não há conta, sincronização, servidor ou recuperação automática.
+Os dados não são sincronizados entre dispositivos. Utilize a exportação JSON para manter cópias de segurança.
 
-## Estrutura principal
+## Roadmap
 
-- `app/`: rota principal, metadados e estilos responsivos.
-- `components/activities-app.tsx`: página interativa, formulários, filtros e backup.
-- `components/ui/`: botão reutilizável e cards expansíveis.
-- `lib/activities.ts`: modelo, validação e acesso ao `localStorage`.
-- `lib/utils.ts`: utilitário `cn` para classes compatíveis com shadcn/ui.
+- [ ] Persistência com SQLite
+- [ ] Login com uma única conta
+- [ ] Seleção de dois perfis independentes
+- [ ] Instalação com Coolify e armazenamento persistente
+- [ ] Migração dos dados locais para o banco
 
-As categorias e os estados definidos no MVP estão em `lib/activities.ts`. A interface não inclui backend, login ou APIs.
+## Contribuindo
+
+Contribuições são bem-vindas!
+
+Você pode abrir uma Issue para relatar erros, sugerir melhorias ou enviar um Pull Request.
+
+## Licença
+
+Distribuído sob a licença MIT. Consulte o arquivo [LICENSE](LICENSE).
