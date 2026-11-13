@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowDownToLine,
   ArrowRight,
   ArrowUpRight,
   ArrowUpFromLine,
@@ -28,8 +27,6 @@ import {
 import {
   ACTIVITY_CATEGORIES,
   ACTIVITY_STATUSES,
-  readActivities,
-  validateBackup,
   type Activity,
   type ActivityCategory,
   type ActivityInput,
@@ -37,6 +34,7 @@ import {
 } from "@/lib/activities";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ProfileOrb } from "@/components/ui/profile-orb";
 import { api, type Profile } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/ui/footer";
@@ -294,8 +292,6 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
   const revisionRef = useRef(0);
   const busyRef = useRef(false);
   const [busy, setBusy] = useState(false);
-  const [legacy, setLegacy] = useState<Activity[]>([]);
-  const [legacyError, setLegacyError] = useState("");
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [storageError, setStorageError] = useState("");
@@ -307,7 +303,6 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
   const [pendingDelete, setPendingDelete] = useState<Activity | null>(null);
   const [dialogActivity, setDialogActivity] = useState<Activity | null | undefined>();
   const deleteTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function showNotice(message: string, tone: CalloutTone = "success") {
     setNotice({ message, tone });
@@ -319,11 +314,6 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
       .then(result => { if (mounted) { setActivities(result.activities); revisionRef.current = result.revision; } })
       .catch(error => { if (mounted) setStorageError(error.message); })
       .finally(() => { if (mounted) setLoaded(true); });
-    queueMicrotask(() => {
-      if (!mounted) return;
-      try { setLegacy(readActivities()); }
-      catch (error) { setLegacyError(error instanceof Error ? error.message : "Não foi possível ler os dados antigos."); }
-    });
     return () => { mounted = false; };
   }, [profile.id]);
 
@@ -370,14 +360,6 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
     try { await write(`activities/${encodeURIComponent(id)}`, "PATCH", { status }); showNotice("Status atualizado."); }
     catch (cause) { showNotice(cause instanceof Error ? cause.message : "Não foi possível atualizar o status.", "danger"); }
   }
-  async function importLegacy() {
-    if (!window.confirm(`Importar ${legacy.length} atividades antigas para o perfil ${profile.name}? Registros idênticos serão ignorados. Os dados do navegador serão mantidos.`)) return;
-    try {
-      const result = await write("import-local", "POST", { activities: legacy });
-      showNotice(`Importação verificada: ${result.imported} adicionadas e ${result.skipped} já existentes no perfil ${profile.name}. Os dados do navegador foram mantidos.`);
-    } catch (cause) { showNotice(cause instanceof Error ? cause.message : "Não foi possível importar.", "danger"); }
-  }
-
   function removeOne(activity: Activity, trigger: HTMLButtonElement) {
     deleteTriggerRef.current = trigger;
     setPendingDelete(activity);
@@ -397,45 +379,6 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
     }
   }
 
-  async function exportBackup() {
-    try {
-      const backup = await api<import("@/lib/activities").ActivityBackup>("backup", { headers: { "x-profile-id": profile.id } });
-      const blob = new Blob([JSON.stringify(backup, null, 2)], {
-        type: "application/json;charset=utf-8",
-      });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `o-que-quero-fazer-${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-      showNotice(`${backup.activities.length} ${backup.activities.length === 1 ? "atividade exportada" : "atividades exportadas"}.`);
-    } catch (cause) {
-      showNotice(cause instanceof Error ? cause.message : "Não foi possível exportar o backup.", "danger");
-    }
-  }
-
-  async function importBackup(event: FormEvent<HTMLInputElement>) {
-    const input = event.currentTarget;
-    const file = input.files?.[0];
-    if (!file) return;
-    if (file.size > 8 * 1024 * 1024) { showNotice("Arquivo muito grande. Limite de 8 MB.", "danger"); input.value = ""; return; }
-
-    try {
-      const backup = validateBackup(JSON.parse(await file.text()) as unknown);
-      if (!window.confirm(`O backup tem ${backup.activities.length} atividades. Substituir todas as atividades do perfil ${profile.name}? O outro perfil não será alterado.`)) return;
-      await write("backup", "PUT", backup);
-      showNotice("Backup importado e verificado com sucesso.");
-      setExpandedId(null);
-    } catch (cause) {
-      showNotice(cause instanceof Error ? cause.message : "Não foi possível importar este arquivo.", "danger");
-    } finally {
-      input.value = "";
-    }
-  }
-
   const activeFilters = categoryFilter !== "Todas" || statusFilter !== "Todos" || search.trim() !== "";
   const hasActivities = loaded && !storageError && activities.length > 0;
   const NoticeIcon = notice?.tone === "danger" ? AlertCircle : notice?.tone === "info" ? Info : CheckCircle2;
@@ -449,31 +392,17 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
             <span>o que fazer<span className="brand-period">.</span></span>
           </a>
           <nav aria-label="Ações da lista" className="topbar-actions">
-            <Link aria-disabled={busy} onClick={(event) => { if (busy) event.preventDefault(); }} prefetch={false} className="profile-switch" href="/profiles">{profile.name} · Trocar perfil</Link>
+            <div className="profile-control">
+              <ProfileOrb avatar={profile.avatar} size={42} />
+              <Link aria-label={`${profile.name} · Trocar perfil`} aria-disabled={busy} onClick={(event) => { if (busy) event.preventDefault(); }} prefetch={false} className="profile-switch" href="/profiles">
+                <span className="profile-switch-name">{profile.name}</span>
+                <span className="profile-switch-chevron"><ChevronDown size={16} aria-hidden="true" /></span>
+              </Link>
+            </div>
             <Button disabled={busy} variant="ghost" onClick={async () => {
               try { await api("logout", { method: "POST" }); router.replace("/login"); router.refresh(); }
               catch (error) { showNotice(error instanceof Error ? error.message : "Não foi possível sair.", "danger"); }
             }}>Sair</Button>
-            <InteractiveHoverButton
-              className="backup-button"
-              onClick={exportBackup}
-              startIcon={<ArrowDownToLine aria-hidden="true" className="action-icon--export" size={15} />}
-              text="Exportar"
-            />
-            <InteractiveHoverButton
-              className="backup-button"
-              onClick={() => fileInputRef.current?.click()}
-              startIcon={<ArrowUpFromLine aria-hidden="true" className="action-icon--import" size={15} />}
-              text="Importar"
-            />
-            <input
-              accept="application/json,.json"
-              aria-label="Selecionar arquivo de backup JSON"
-              className="sr-only"
-              onChange={importBackup}
-              ref={fileInputRef}
-              type="file"
-            />
           </nav>
         </header>
         <div className="hero-copy">
@@ -497,11 +426,6 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
 
       <BackgroundGradientGlow className="content-background">
       <div className="page-main" id="lista">
-      {(legacy.length > 0 || legacyError) && <Callout className="storage-notice legacy-notice" title="Ideias guardadas neste navegador" tone="info" icon={<Info size={17} />}>
-        <p>{legacyError || `${legacy.length} ${legacy.length === 1 ? "atividade antiga disponível" : "atividades antigas disponíveis"}. Destino: ${profile.name}.`}</p>
-        {legacy.length > 0 && <Button disabled={busy || !loaded || Boolean(storageError)} onClick={importLegacy}>Importar para {profile.name}</Button>}
-        <Link prefetch={false} href="/profiles">Escolher outro perfil</Link>
-      </Callout>}
       {hasActivities && (
         <section aria-label="Resumo das atividades e filtros por status" className="stats-row">
           <ActivityStat
@@ -698,7 +622,7 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
               <AlertDialogDescription>
                 {pendingDelete && (
                   <>
-                    A atividade “{pendingDelete.title}” será removida da sua lista. Para recuperá-la depois, será necessário importar um backup anterior.
+                    A atividade “{pendingDelete.title}” será removida da sua lista. Essa ação não pode ser desfeita.
                   </>
                 )}
               </AlertDialogDescription>

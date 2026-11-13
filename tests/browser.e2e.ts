@@ -9,10 +9,9 @@ import { join, resolve } from "node:path";
 import { createServer } from "node:net";
 import { database } from "../lib/server/database";
 import { setupAccount } from "../lib/server/credentials";
-import { ACTIVITY_STORAGE_KEY } from "../lib/activities";
 
 test(
-  "navegador: login, perfis, formulário assíncrono, CRUD, filtros, backup e migração local",
+  "navegador: login, perfis, formulário assíncrono, CRUD, filtros e seletor com orb",
   { timeout: 120000 },
   async () => {
     const directory = mkdtempSync(join(tmpdir(), "oquefazer-browser-"));
@@ -163,10 +162,9 @@ test(
       ).toBeVisible();
       await page.getByRole("button", { name: "Limpar filtros" }).click();
       await capture("list-desktop.png");
-      const downloaded = page.waitForEvent("download");
-      await page.getByRole("button", { name: "Exportar", exact: true }).click();
-      const backupPath = join(directory, "backup.json");
-      await (await downloaded).saveAs(backupPath);
+      await expect(page.getByRole("button", { name: "Exportar", exact: true })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Importar", exact: true })).toHaveCount(0);
+      await expect(page.locator(".profile-control [data-slot=live-orb]")).toBeVisible();
       await page.locator(".expanding-card__title").click();
       await page
         .getByRole("button", { name: "Excluir Aprender Drizzle", exact: true })
@@ -180,13 +178,6 @@ test(
           name: "Comece por algo que sempre quis fazer",
         }),
       ).toBeVisible();
-      page.once("dialog", (dialog) => dialog.accept());
-      await page
-        .getByLabel("Selecionar arquivo de backup JSON")
-        .setInputFiles(backupPath);
-      await expect(page.locator(".expanding-card__title")).toHaveText(
-        "Aprender Drizzle",
-      );
       await page.getByRole("link", { name: /Trocar perfil/ }).click();
       await page
         .getByRole("button", { name: "Pessoa dois", exact: true })
@@ -196,42 +187,6 @@ test(
           name: "Comece por algo que sempre quis fazer",
         }),
       ).toBeVisible();
-      await page.evaluate((key) => {
-        const now = "2024-01-01T00:00:00.000Z";
-        localStorage.setItem(
-          key,
-          JSON.stringify([
-            {
-              id: "old-browser-id",
-              title: "Ideia antiga",
-              description: "",
-              category: "Lugares",
-              status: "Quero fazer",
-              imageUrl: "",
-              linkUrl: "",
-              createdAt: now,
-              updatedAt: now,
-            },
-          ]),
-        );
-      }, ACTIVITY_STORAGE_KEY);
-      await page.reload();
-      await expect(
-        page.getByText("1 atividade antiga disponível.", { exact: false }),
-      ).toBeVisible();
-      page.once("dialog", (dialog) => dialog.accept());
-      await page
-        .getByRole("button", { name: "Importar para Pessoa dois" })
-        .click();
-      await expect(page.locator(".expanding-card__title")).toHaveText(
-        "Ideia antiga",
-      );
-      assert.ok(
-        await page.evaluate(
-          (key) => localStorage.getItem(key),
-          ACTIVITY_STORAGE_KEY,
-        ),
-      );
       await page.getByRole("link", { name: /Trocar perfil/ }).click();
       await page
         .getByRole("button", { name: "Editar perfil de Pessoa dois" })
@@ -252,9 +207,7 @@ test(
       await page
         .getByRole("button", { name: "Pessoa um", exact: true })
         .click();
-      await expect(page.locator(".expanding-card__title")).toHaveText(
-        "Aprender Drizzle",
-      );
+      await expect(page.locator(".expanding-card__title")).toHaveCount(0);
       await capture("list-mobile.png");
       assert.ok(
         await page.evaluate(
