@@ -87,7 +87,7 @@ export function ExpandingCards({
         } as CSSProperties;
         const photoStyle = activity.imageUrl
           ? {
-              backgroundImage: `linear-gradient(180deg, rgba(41, 38, 33, .08) 0%, rgba(41, 38, 33, .72) 100%), url(${JSON.stringify(activity.imageUrl)})`,
+              backgroundImage: `linear-gradient(180deg, rgba(28, 24, 46, .08) 0%, rgba(28, 24, 46, .78) 100%), url(${JSON.stringify(activity.imageUrl)})`,
             }
           : undefined;
 

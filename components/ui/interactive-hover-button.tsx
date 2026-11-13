@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowRight } from "lucide-react";
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,8 @@ const InteractiveHoverButton = forwardRef<HTMLButtonElement, InteractiveHoverBut
           {startIcon && <span className="interactive-hover-button__icon">{startIcon}</span>}
           <span className="interactive-hover-button__text">{text}</span>
         </span>
+        <span aria-hidden="true" className="interactive-hover-button__hover-label"><span>{text}</span><ArrowRight size={16} /></span>
+        <span aria-hidden="true" className="interactive-hover-button__fill" />
       </button>
     );
   },
