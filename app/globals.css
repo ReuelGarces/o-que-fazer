@@ -2523,3 +2523,32 @@ summary:focus-visible {
 .content-background { z-index: 1; }
 .content-background .page-main { background: transparent; }
 .footer { border-top: 0; background: transparent; }
+
+/* Account screens inherit the established palette and local fonts. */
+.account-shell { min-height: 100svh; display: grid; place-items: center; padding: clamp(24px, 6vw, 80px); background: var(--background); }
+.account-panel { width: min(100%, 460px); display: flex; flex-direction: column; gap: 24px; }
+.account-brand { font-family: var(--font-serif); font-size: 28px; color: var(--foreground); text-decoration: none; margin-bottom: 32px; }
+.account-symbol { color: var(--primary); }
+.account-panel h1 { font-family: var(--font-serif); font-size: clamp(36px, 6vw, 52px); line-height: 1.1; text-wrap: balance; }
+.account-panel p { color: var(--text-secondary); line-height: 1.6; }
+.account-form { display: grid; gap: 20px; }
+.account-form .form-field { display: grid; gap: 8px; }
+.account-panel--profiles { width: min(100%, 760px); }
+.profile-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; margin-block: 16px; }
+.profile-choice { min-width: 0; display: grid; align-content: start; gap: 16px; }
+.profile-select { min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--card); color: var(--foreground); font-size: 24px; cursor: pointer; overflow-wrap: anywhere; padding: 24px; }
+.profile-select:hover { background: var(--secondary); }
+.profile-select:focus-visible, .account-panel a:focus-visible { outline: 3px solid var(--ring); outline-offset: 4px; }
+.profile-select:disabled { opacity: .6; cursor: wait; }
+.profile-switch { color: inherit; font-size: 14px; text-decoration: underline; text-underline-offset: 4px; overflow-wrap: anywhere; }
+.hero-topbar .topbar-actions { flex-wrap: wrap; }
+@media (max-width: 600px) { .profile-choices { grid-template-columns: 1fr; } .account-brand { margin-bottom: 8px; } .hero-topbar { align-items: flex-start; } .hero-topbar .topbar-actions { justify-content: flex-end; gap: 8px; max-width: 65%; } }
+
+.activity-form-fields { display: contents; }
+
+.legacy-notice .callout__body { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: start; gap: 12px; }
+.legacy-notice .callout__body p { min-width: 0; overflow-wrap: anywhere; }
+.legacy-notice .button { max-width: 100%; white-space: normal; height: auto; min-height: 40px; }
+.legacy-notice a { overflow-wrap: anywhere; text-decoration: underline; text-underline-offset: 3px; }
+.hero-topbar .button--ghost { color: #fff; }
+.hero-topbar .button--ghost:hover:not(:disabled) { background: rgba(255, 255, 255, .14); }

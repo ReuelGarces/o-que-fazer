@@ -1,0 +1,15 @@
+.git
+node_modules
+.next
+.env
+.env.*
+*.sqlite*
+*.db*
+coverage
+data
+backups
+tmp
+temp
+.codex
+.impeccable
+tests

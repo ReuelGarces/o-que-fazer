@@ -28,19 +28,16 @@ import {
 import {
   ACTIVITY_CATEGORIES,
   ACTIVITY_STATUSES,
-  ACTIVITY_STORAGE_KEY,
-  addActivity,
-  deleteActivity,
-  makeBackup,
   readActivities,
-  saveActivities,
-  updateActivity,
   validateBackup,
   type Activity,
   type ActivityCategory,
   type ActivityInput,
   type ActivityStatus,
 } from "@/lib/activities";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { api, type Profile } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/ui/footer";
 import { BackgroundGradientGlow } from "@/components/ui/background-gradient-glow";
@@ -70,10 +67,12 @@ function ActivityDialog({
 }: {
   activity: Activity | null;
   onClose: () => void;
-  onSave: (input: ActivityInput) => void;
+  onSave: (input: ActivityInput) => Promise<void>;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [title, setTitle] = useState(activity?.title ?? "");
   const [description, setDescription] = useState(activity?.description ?? "");
   const [category, setCategory] = useState<ActivityCategory>(activity?.category ?? "Outros");
@@ -92,15 +91,17 @@ function ActivityDialog({
     };
   }, []);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (savingRef.current) return;
+    savingRef.current = true; setSaving(true);
     setError("");
     try {
-      onSave({ title, description, category, status, imageUrl, linkUrl });
+      await onSave({ title, description, category, status, imageUrl, linkUrl });
       dialogRef.current?.close();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível salvar a atividade.");
-    }
+    } finally { savingRef.current = false; setSaving(false); }
   }
 
   return (
@@ -109,8 +110,9 @@ function ActivityDialog({
       className="activity-dialog"
       data-lenis-prevent=""
       onClick={(event) => {
-        if (event.target === dialogRef.current) dialogRef.current.close();
+        if (!saving && event.target === dialogRef.current) dialogRef.current.close();
       }}
+      onCancel={(event) => { if (saving) event.preventDefault(); }}
       onClose={(event) => {
         if (!event.currentTarget.open) onClose();
       }}
@@ -125,7 +127,7 @@ function ActivityDialog({
           </div>
           <Button
             aria-label="Fechar formulário"
-            onClick={() => dialogRef.current?.close()}
+            disabled={saving} onClick={() => dialogRef.current?.close()}
             size="icon"
             variant="ghost"
           >
@@ -134,6 +136,7 @@ function ActivityDialog({
         </div>
 
         <form className="activity-form" onSubmit={submit}>
+          <fieldset className="activity-form-fields" disabled={saving}>
           <label className="form-field form-field--wide" htmlFor="activity-title">
             <span>Título <span className="required-mark">*</span></span>
             <input
@@ -237,14 +240,15 @@ function ActivityDialog({
           )}
 
           <div className="dialog-actions form-field--wide">
-            <Button onClick={() => dialogRef.current?.close()} type="button" variant="ghost">
+            <Button disabled={saving} onClick={() => dialogRef.current?.close()} type="button" variant="ghost">
               Cancelar
             </Button>
-            <Button type="submit" variant="primary">
+            <Button disabled={saving} type="submit" variant="primary">
               <Check aria-hidden="true" size={16} />
-              {activity ? "Salvar alterações" : "Adicionar à lista"}
+              {saving ? "Salvando…" : activity ? "Salvar alterações" : "Adicionar à lista"}
             </Button>
           </div>
+          </fieldset>
         </form>
       </div>
     </dialog>
@@ -285,7 +289,13 @@ function ActivityStat({
   );
 }
 
-export function ActivitiesApp() {
+export function ActivitiesApp({ profile }: { profile: Profile }) {
+  const router = useRouter();
+  const revisionRef = useRef(0);
+  const busyRef = useRef(false);
+  const [busy, setBusy] = useState(false);
+  const [legacy, setLegacy] = useState<Activity[]>([]);
+  const [legacyError, setLegacyError] = useState("");
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [storageError, setStorageError] = useState("");
@@ -305,20 +315,17 @@ export function ActivitiesApp() {
 
   useEffect(() => {
     let mounted = true;
+    api<{ activities: Activity[]; revision: number }>("activities", { headers: { "x-profile-id": profile.id } })
+      .then(result => { if (mounted) { setActivities(result.activities); revisionRef.current = result.revision; } })
+      .catch(error => { if (mounted) setStorageError(error.message); })
+      .finally(() => { if (mounted) setLoaded(true); });
     queueMicrotask(() => {
       if (!mounted) return;
-      try {
-        setActivities(readActivities());
-      } catch (cause) {
-        setStorageError(
-          cause instanceof Error ? cause.message : "Os dados locais não puderam ser lidos.",
-        );
-      } finally {
-        setLoaded(true);
-      }
+      try { setLegacy(readActivities()); }
+      catch (error) { setLegacyError(error instanceof Error ? error.message : "Não foi possível ler os dados antigos."); }
     });
     return () => { mounted = false; };
-  }, []);
+  }, [profile.id]);
 
   const filteredActivities = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("pt-BR");
@@ -336,30 +343,39 @@ export function ActivitiesApp() {
     complete: activities.filter((activity) => activity.status === "Concluído").length,
   }), [activities]);
 
-  function reloadFromStorage(message?: string) {
-    const saved = readActivities();
-    setActivities(saved);
-    setStorageError("");
-    showNotice(message ?? "Alterações salvas.");
-  }
-
-  function saveOne(input: ActivityInput) {
-    if (dialogActivity) {
-      updateActivity(dialogActivity.id, input);
-      reloadFromStorage("Atividade atualizada.");
-    } else {
-      addActivity(input);
-      reloadFromStorage("Atividade adicionada à sua lista.");
-    }
-  }
-
-  function changeStatus(id: string, status: ActivityStatus) {
+  async function refreshList() {
+    if (busyRef.current) return;
+    busyRef.current = true; setBusy(true);
     try {
-      updateActivity(id, { status });
-      reloadFromStorage("Status atualizado.");
-    } catch (cause) {
-      showNotice(cause instanceof Error ? cause.message : "Não foi possível atualizar o status.", "danger");
-    }
+      const result = await api<{ activities: Activity[]; revision: number }>("activities", { headers: { "x-profile-id": profile.id } });
+      revisionRef.current = result.revision; setActivities(result.activities); setStorageError("");
+    } finally { busyRef.current = false; setBusy(false); }
+  }
+  async function write(path: string, method: string, value?: unknown) {
+    if (busyRef.current) throw new Error("Aguarde a operação atual terminar.");
+    busyRef.current = true; setBusy(true);
+    try {
+      const result = await api<{ activities: Activity[]; revision: number; imported: number; skipped: number }>(path, {
+        method, headers: { "x-profile-id": profile.id, "if-match": String(revisionRef.current) },
+        body: value === undefined ? undefined : JSON.stringify(value),
+      });
+      revisionRef.current = result.revision; setActivities(result.activities); setStorageError(""); return result;
+    } finally { busyRef.current = false; setBusy(false); }
+  }
+  async function saveOne(input: ActivityInput) {
+    await write(dialogActivity ? `activities/${encodeURIComponent(dialogActivity.id)}` : "activities", dialogActivity ? "PATCH" : "POST", input);
+    showNotice(dialogActivity ? "Atividade atualizada." : "Atividade adicionada à sua lista.");
+  }
+  async function changeStatus(id: string, status: ActivityStatus) {
+    try { await write(`activities/${encodeURIComponent(id)}`, "PATCH", { status }); showNotice("Status atualizado."); }
+    catch (cause) { showNotice(cause instanceof Error ? cause.message : "Não foi possível atualizar o status.", "danger"); }
+  }
+  async function importLegacy() {
+    if (!window.confirm(`Importar ${legacy.length} atividades antigas para o perfil ${profile.name}? Registros idênticos serão ignorados. Os dados do navegador serão mantidos.`)) return;
+    try {
+      const result = await write("import-local", "POST", { activities: legacy });
+      showNotice(`Importação verificada: ${result.imported} adicionadas e ${result.skipped} já existentes no perfil ${profile.name}. Os dados do navegador foram mantidos.`);
+    } catch (cause) { showNotice(cause instanceof Error ? cause.message : "Não foi possível importar.", "danger"); }
   }
 
   function removeOne(activity: Activity, trigger: HTMLButtonElement) {
@@ -367,24 +383,23 @@ export function ActivitiesApp() {
     setPendingDelete(activity);
   }
 
-  function confirmRemoveOne() {
+  async function confirmRemoveOne() {
     if (!pendingDelete) return;
 
     const activity = pendingDelete;
     try {
-      deleteActivity(activity.id);
+      await write(`activities/${encodeURIComponent(activity.id)}`, "DELETE");
       if (expandedId === activity.id) setExpandedId(null);
       setPendingDelete(null);
-      reloadFromStorage("Atividade excluída.");
+      showNotice("Atividade excluída.");
     } catch (cause) {
-      setPendingDelete(null);
       showNotice(cause instanceof Error ? cause.message : "Não foi possível excluir a atividade.", "danger");
     }
   }
 
-  function exportBackup() {
+  async function exportBackup() {
     try {
-      const backup = makeBackup(readActivities());
+      const backup = await api<import("@/lib/activities").ActivityBackup>("backup", { headers: { "x-profile-id": profile.id } });
       const blob = new Blob([JSON.stringify(backup, null, 2)], {
         type: "application/json;charset=utf-8",
       });
@@ -406,22 +421,13 @@ export function ActivitiesApp() {
     const input = event.currentTarget;
     const file = input.files?.[0];
     if (!file) return;
+    if (file.size > 8 * 1024 * 1024) { showNotice("Arquivo muito grande. Limite de 8 MB.", "danger"); input.value = ""; return; }
 
     try {
       const backup = validateBackup(JSON.parse(await file.text()) as unknown);
-      let hasStoredValue = false;
-      try {
-        hasStoredValue = window.localStorage.getItem(ACTIVITY_STORAGE_KEY) !== null;
-      } catch {
-        hasStoredValue = activities.length > 0;
-      }
-      const prompt = hasStoredValue
-        ? `O backup tem ${backup.activities.length} atividades. Ele substituirá todos os dados locais atuais. Continuar?`
-        : `Importar ${backup.activities.length} atividades deste backup?`;
-      if (!window.confirm(prompt)) return;
-
-      saveActivities(backup.activities);
-      reloadFromStorage("Backup importado com sucesso.");
+      if (!window.confirm(`O backup tem ${backup.activities.length} atividades. Substituir todas as atividades do perfil ${profile.name}? O outro perfil não será alterado.`)) return;
+      await write("backup", "PUT", backup);
+      showNotice("Backup importado e verificado com sucesso.");
       setExpandedId(null);
     } catch (cause) {
       showNotice(cause instanceof Error ? cause.message : "Não foi possível importar este arquivo.", "danger");
@@ -443,6 +449,11 @@ export function ActivitiesApp() {
             <span>o que fazer<span className="brand-period">.</span></span>
           </a>
           <nav aria-label="Ações da lista" className="topbar-actions">
+            <Link aria-disabled={busy} onClick={(event) => { if (busy) event.preventDefault(); }} prefetch={false} className="profile-switch" href="/profiles">{profile.name} · Trocar perfil</Link>
+            <Button disabled={busy} variant="ghost" onClick={async () => {
+              try { await api("logout", { method: "POST" }); router.replace("/login"); router.refresh(); }
+              catch (error) { showNotice(error instanceof Error ? error.message : "Não foi possível sair.", "danger"); }
+            }}>Sair</Button>
             <InteractiveHoverButton
               className="backup-button"
               onClick={exportBackup}
@@ -470,7 +481,7 @@ export function ActivitiesApp() {
           <p>Reúna ideias do que fazer, lugares para conhecer e coisas novas para aprender.</p>
           <Button
             className="hero-cta"
-            disabled={!loaded || Boolean(storageError)}
+            disabled={busy || !loaded || Boolean(storageError)}
             onClick={() => setDialogActivity(null)}
             variant="primary"
           >
@@ -486,6 +497,11 @@ export function ActivitiesApp() {
 
       <BackgroundGradientGlow className="content-background">
       <div className="page-main" id="lista">
+      {(legacy.length > 0 || legacyError) && <Callout className="storage-notice legacy-notice" title="Ideias guardadas neste navegador" tone="info" icon={<Info size={17} />}>
+        <p>{legacyError || `${legacy.length} ${legacy.length === 1 ? "atividade antiga disponível" : "atividades antigas disponíveis"}. Destino: ${profile.name}.`}</p>
+        {legacy.length > 0 && <Button disabled={busy || !loaded || Boolean(storageError)} onClick={importLegacy}>Importar para {profile.name}</Button>}
+        <Link prefetch={false} href="/profiles">Escolher outro perfil</Link>
+      </Callout>}
       {hasActivities && (
         <section aria-label="Resumo das atividades e filtros por status" className="stats-row">
           <ActivityStat
@@ -521,10 +537,10 @@ export function ActivitiesApp() {
           className="storage-notice"
           icon={<AlertCircle size={17} />}
           role="alert"
-          title="Não foi possível ler o armazenamento local"
+          title="Não foi possível carregar sua lista"
           tone="danger"
         >
-          <p>{storageError} Os dados não foram regravados durante a inicialização; você pode importar um backup para substituir o conteúdo local.</p>
+          <p>{storageError} Tente carregar a lista novamente ou <Link href="/login">entre novamente</Link>.</p>
           <Button aria-label="Fechar aviso" onClick={() => setStorageError("")} size="icon" variant="ghost"><X aria-hidden="true" size={16} /></Button>
         </Callout>
       )}
@@ -543,7 +559,7 @@ export function ActivitiesApp() {
             {hasActivities && (
               <ExpandingIconButton
                 className="collection-add-button"
-                disabled={!loaded || Boolean(storageError)}
+                disabled={busy || !loaded || Boolean(storageError)}
                 onClick={() => setDialogActivity(null)}
                 text="Adicionar ideia"
               />
@@ -590,14 +606,14 @@ export function ActivitiesApp() {
               <div className="empty-state empty-state--small">
                 <span className="empty-icon"><CircleHelp aria-hidden="true" size={20} /></span>
                 <div>
-                  <h3>A lista local está indisponível</h3>
-                  <p>Seus dados não foram regravados. Importe um backup JSON válido para restaurar a lista.</p>
+                  <h3>A lista está indisponível</h3>
+                  <p>Verifique sua conexão e tente novamente.</p>
                 </div>
                 <InteractiveHoverButton
                   className="empty-import-button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => { void refreshList().catch(error => setStorageError(error.message)); }}
                   startIcon={<ArrowUpFromLine aria-hidden="true" size={15} />}
-                  text="Importar backup"
+                  text="Tentar novamente"
                 />
               </div>
             ) : filteredActivities.length > 0 ? (
@@ -624,7 +640,7 @@ export function ActivitiesApp() {
                 </div>
                 <ExpandingIconButton
                   className="empty-add-button"
-                  disabled={!loaded || Boolean(storageError)}
+                  disabled={busy || !loaded || Boolean(storageError)}
                   onClick={() => setDialogActivity(null)}
                   text="Adicionar primeira ideia"
                 />
@@ -660,7 +676,7 @@ export function ActivitiesApp() {
         />
       )}
       <AlertDialog
-        onOpenChange={(open) => { if (!open) setPendingDelete(null); }}
+        onOpenChange={(open) => { if (!open && !busy) setPendingDelete(null); }}
         open={pendingDelete !== null}
       >
         <AlertDialogContent
@@ -689,9 +705,9 @@ export function ActivitiesApp() {
             </div>
           </AlertDialogHeader>
           <AlertDialogFooter className="delete-confirmation__actions">
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmRemoveOne}>
-              Excluir atividade
+            <AlertDialogCancel disabled={busy}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction disabled={busy} onClick={(event) => { event.preventDefault(); void confirmRemoveOne(); }}>
+              {busy ? "Excluindo…" : "Excluir atividade"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -706,6 +722,7 @@ export function ActivitiesApp() {
           tone={notice.tone}
         >
           <span>{notice.message}</span>
+          {notice.tone === "danger" && <Button disabled={busy} variant="ghost" onClick={() => { void refreshList().then(() => showNotice("Lista atualizada. Você pode tentar novamente.")).catch(error => showNotice(error.message, "danger")); }}>Atualizar lista</Button>}
           <Button aria-label="Fechar mensagem" onClick={() => setNotice(null)} size="icon" variant="ghost">
             <X aria-hidden="true" size={15} />
           </Button>
