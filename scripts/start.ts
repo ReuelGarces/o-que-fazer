@@ -5,7 +5,7 @@ try {
   if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32)
     throw new Error();
   const origin = new URL(process.env.APP_ORIGIN || "");
-  if (origin.protocol !== "https:")
+  if (origin.protocol !== "https:" || origin.origin !== process.env.APP_ORIGIN)
     throw new Error();
   database().sqlite.close();
   const child = spawn(

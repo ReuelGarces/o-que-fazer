@@ -33,8 +33,26 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm test
+
       - name: Build
         run: npm run build
 
-      - name: TypeScript
-        run: npx tsc --noEmit
+      - name: Integration tests
+        run: npm run test:integration
+
+  docker:
+    name: Docker Smoke Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: node --test tests/docker.smoke.mjs

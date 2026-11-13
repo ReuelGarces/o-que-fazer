@@ -13,6 +13,7 @@
     "db:generate": "drizzle-kit generate",
     "test": "node --conditions=react-server --import tsx --test tests/*.test.ts",
     "test:integration": "node --conditions=react-server --import tsx --test tests/http.integration.ts",
+    "test:docker": "node --test tests/docker.smoke.mjs",
     "test:ui": "node --conditions=react-server --import tsx --test tests/browser.e2e.ts"
   },
   "dependencies": {
