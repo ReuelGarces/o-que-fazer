@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { SignIn6 } from "@/components/ui/sign-in-6";
 import { useRouter } from "next/navigation";
 import { useState, useRef, type FormEvent } from "react";
 import { BookOpen, Compass, Mountain, Star, AlertCircle } from "lucide-react";
@@ -59,48 +60,7 @@ export function LoginForm() {
       setBusy(false);
     }
   }
-  return (
-    <main className="account-shell">
-      <section className="account-panel" aria-labelledby="login-title">
-        <Link prefetch={false} className="account-brand" href="/">
-          O que fazer?
-        </Link>
-        <Compass
-          className="account-symbol"
-          size={40}
-          strokeWidth={1.4}
-          aria-hidden="true"
-        />
-        <h1 id="login-title">Suas próximas ideias começam aqui.</h1>
-        <p>Entre com a conta compartilhada para abrir sua lista.</p>
-        <form className="account-form" onSubmit={submit}>
-          <label className="form-field">
-            Usuário
-            <input
-              name="username"
-              autoComplete="username"
-              required
-              maxLength={64}
-            />
-          </label>
-          <label className="form-field">
-            Senha
-            <input
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              maxLength={256}
-            />
-          </label>
-          <ErrorNotice message={error} />
-          <Button disabled={busy} type="submit" variant="primary">
-            {busy ? "Entrando…" : "Entrar"}
-          </Button>
-        </form>
-      </section>
-    </main>
-  );
+  return <SignIn6 busy={busy} error={error} onSubmit={submit} />;
 }
 export function ProfilePicker({
   initialProfiles,
