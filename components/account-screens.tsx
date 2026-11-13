@@ -1,23 +1,19 @@
 "use client";
 import Link from "next/link";
+import { ProfileOrb } from "@/components/ui/profile-orb";
 import { SignIn6 } from "@/components/ui/sign-in-6";
 import { useRouter } from "next/navigation";
 import { useState, useRef, type FormEvent } from "react";
-import { BookOpen, Compass, Mountain, Star, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { api, type Profile } from "@/lib/api";
-const avatars = {
-  compass: Compass,
-  book: BookOpen,
-  mountain: Mountain,
-  star: Star,
-};
+
 const avatarNames = {
-  compass: "Bússola",
-  book: "Livro",
-  mountain: "Montanha",
-  star: "Estrela",
+  compass: "Lilás",
+  book: "Verde",
+  mountain: "Rosa",
+  star: "Dourado",
 };
 function ErrorNotice({ message }: { message: string }) {
   return message ? (
@@ -101,8 +97,6 @@ export function ProfilePicker({
         <ErrorNotice message={error} />
         <div className="profile-choices">
           {profiles.map((profile) => {
-            const Icon =
-              avatars[profile.avatar as keyof typeof avatars] || Compass;
             return (
               <div className="profile-choice" key={profile.id}>
                 <button
@@ -119,7 +113,7 @@ export function ProfilePicker({
                     })
                   }
                 >
-                  <Icon size={46} strokeWidth={1.4} aria-hidden="true" />
+                  <ProfileOrb avatar={profile.avatar} size={88} />
                   <span>{profile.name}</span>
                 </button>
                 <Button
@@ -165,9 +159,9 @@ export function ProfilePicker({
                     <label className="form-field">
                       Avatar
                       <select name="avatar" defaultValue={profile.avatar}>
-                        {Object.keys(avatars).map((key) => (
+                        {Object.keys(avatarNames).map((key) => (
                           <option key={key} value={key}>
-                            {avatarNames[key as keyof typeof avatars]}
+                            {avatarNames[key as keyof typeof avatarNames]}
                           </option>
                         ))}
                       </select>

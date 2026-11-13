@@ -1,34 +1,17 @@
 @import "tailwindcss";
 
 @font-face {
-  font-family: "Almendra";
-  src: url("/fonts/Almendra-Regular.ttf") format("truetype");
+  font-family: "DM Sans";
+  src: url("/fonts/DMSans.ttf") format("truetype");
   font-style: normal;
-  font-weight: 400;
+  font-weight: 100 1000;
   font-display: swap;
 }
-
 @font-face {
-  font-family: "Roboto";
-  src: url("/fonts/Roboto-Regular.ttf") format("truetype");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Roboto";
-  src: url("/fonts/Roboto-Medium.ttf") format("truetype");
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Roboto";
-  src: url("/fonts/Roboto-SemiBold.ttf") format("truetype");
-  font-style: normal;
-  font-weight: 600 700;
+  font-family: "DM Sans";
+  src: url("/fonts/DMSans-Italic.ttf") format("truetype");
+  font-style: italic;
+  font-weight: 100 1000;
   font-display: swap;
 }
 
@@ -54,8 +37,8 @@
   --input: #d8d7e5;
   --ring: #7d6eb7;
   --text-secondary: #5e5d73;
-  --font-sans: "Roboto", Arial, sans-serif;
-  --font-serif: "Almendra", Georgia, serif;
+  --font-sans: "DM Sans", Arial, sans-serif;
+  --font-serif: "DM Sans", Arial, sans-serif;
   --glass: rgba(255, 255, 255, 0.72);
   --glass-border: rgba(255, 255, 255, 0.9);
   --soft-shadow: 0 14px 36px rgba(58, 54, 91, 0.1);
@@ -81,8 +64,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --font-sans: "Roboto", Arial, sans-serif;
-  --font-serif: "Almendra", Georgia, serif;
+  --font-sans: "DM Sans", Arial, sans-serif;
+  --font-serif: "DM Sans", Arial, sans-serif;
 }
 
 * {
@@ -2556,7 +2539,7 @@ summary:focus-visible {
 /* Split-panel login, adapted from the supplied SignIn6 reference. */
 .sign-in-shell { padding: clamp(20px, 5vw, 72px); }
 .sign-in-card { width: min(100%, 900px); display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; border-radius: 16px; background: #fff; box-shadow: 0 24px 72px rgba(58, 54, 91, .12); }
-.sign-in-story { min-height: 540px; padding: 40px; display: flex; flex-direction: column; justify-content: space-between; gap: 64px; background: linear-gradient(160deg, #716099, #51426f); color: #fff; }
+.sign-in-story { min-height: 540px; padding: 40px; display: flex; flex-direction: column; justify-content: space-between; gap: 64px; background: linear-gradient(180deg, rgb(25 22 32 / 60%), rgb(25 22 32 / 78%)), url("/images/hero-notebook.webp") center / cover; color: #fff; }
 .sign-in-brand { display: flex; align-items: center; gap: 12px; width: fit-content; color: inherit; text-decoration: none; font-family: var(--font-serif); font-size: 24px; }
 .sign-in-brand-mark { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,.12); }
 .sign-in-story-copy { margin-top: auto; display: grid; gap: 22px; }
@@ -2582,3 +2565,12 @@ summary:focus-visible {
   .sign-in-content { padding: 32px 28px; gap: 28px; }
   .sign-in-heading h1 { font-size: 30px; }
 }
+
+.profile-orb { display: inline-flex; flex-shrink: 0; }
+.profile-control { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.profile-switch { display: inline-flex; align-items: stretch; border-radius: 10px; background: var(--primary); color: var(--primary-foreground); text-decoration: none; box-shadow: 0 2px 4px rgb(0 0 0 / 8%); overflow: hidden; max-width: 220px; }
+.profile-switch-name { padding: 12px 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-switch-chevron { display: flex; align-items: center; justify-content: center; width: 42px; flex-shrink: 0; border-left: 1px solid rgb(255 255 255 / 30%); }
+.profile-switch:hover { background: #6a5b9f; }
+.profile-switch[aria-disabled="true"] { opacity: .5; pointer-events: none; }
+@media (max-width: 700px) { .profile-control { gap: 6px; } .profile-switch { max-width: 150px; } .profile-switch-name { padding: 12px 10px; } }
