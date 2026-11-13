@@ -41,8 +41,9 @@ import {
   type ActivityInput,
   type ActivityStatus,
 } from "@/lib/activities";
-import { AuroraBackground } from "@/components/ui/aurora-background";
 import { Button } from "@/components/ui/button";
+import Footer from "@/components/ui/footer";
+import { BackgroundGradientGlow } from "@/components/ui/background-gradient-glow";
 import { Callout, type CalloutTone } from "@/components/ui/callout";
 import ExpandingIconButton from "@/components/ui/expanding-icon-button";
 import { ExpandingCards } from "@/components/ui/expanding-cards";
@@ -435,7 +436,6 @@ export function ActivitiesApp() {
   return (
     <main className="app-shell">
       <section aria-labelledby="hero-title" className="hero" id="inicio">
-        <AuroraBackground />
         <div aria-hidden="true" className="hero-grid">{Array.from({ length: 5 }, (_, index) => <span key={index} />)}</div>
         <header className="topbar hero-topbar">
           <a aria-label="O que fazer? — início" className="brand" href="#inicio">
@@ -466,7 +466,7 @@ export function ActivitiesApp() {
           </nav>
         </header>
         <div className="hero-copy">
-          <h1 id="hero-title">O que fazer?</h1>
+          <h1 id="hero-title" tabIndex={-1}>O que fazer?</h1>
           <p>Reúna ideias do que fazer, lugares para conhecer e coisas novas para aprender.</p>
           <Button
             className="hero-cta"
@@ -484,6 +484,7 @@ export function ActivitiesApp() {
         </a>
       </section>
 
+      <BackgroundGradientGlow className="content-background">
       <div className="page-main" id="lista">
       {hasActivities && (
         <section aria-label="Resumo das atividades e filtros por status" className="stats-row">
@@ -648,20 +649,8 @@ export function ActivitiesApp() {
       </section>
 
       </div>
-      <footer className="footer" id="rodape">
-        <a aria-label="O que fazer? — início" className="footer-brand" href="#inicio">
-          <span className="brand-mark"><Compass aria-hidden="true" size={17} strokeWidth={1.7} /></span>
-          <span>o que fazer<span className="brand-period">.</span></span>
-        </a>
-        <nav aria-label="Links do rodapé" className="footer-links">
-          <a href="#inicio">Início</a>
-          <a href="#lista">Minha lista</a>
-        </nav>
-        <p className="footer-note">© Reuel Garcês. Todos os direitos reservados.</p>
-        <a className="footer-scroll-top" href="#inicio">
-          Voltar ao início <ArrowUpRight aria-hidden="true" size={15} />
-        </a>
-      </footer>
+        <Footer />
+      </BackgroundGradientGlow>
 
       {dialogActivity !== undefined && (
         <ActivityDialog

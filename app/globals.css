@@ -604,7 +604,7 @@ summary:focus-visible {
   overflow: hidden;
   margin-inline: calc(50% - 50vw);
   padding: 110px 24px 84px;
-  background: linear-gradient(135deg, #28223e, #716294 55%, #393456);
+  background: linear-gradient(rgba(24, 20, 38, .52), rgba(24, 20, 38, .58)), url("/images/hero-post-its.webp");
   background-position: center;
   background-size: cover;
   color: var(--foreground);
@@ -758,7 +758,7 @@ summary:focus-visible {
 
 .stats-row {
   display: grid;
-  width: min(1100px, 100%);
+  width: 100%;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   overflow: hidden;
   margin: 0 auto 56px;
@@ -2475,3 +2475,51 @@ summary:focus-visible {
 /* Keep section widths inside the scrollbar gutter. */
 .app-shell { width: 100%; margin: 0; }
 .hero, .page-main, .footer { width: 100%; margin-inline: 0; }
+
+.footer-icon-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px;
+  border: 1px dotted var(--secondary-foreground);
+  border-radius: 999px;
+}
+
+.footer-icon-link {
+  display: inline-flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--foreground);
+  text-decoration: none;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.footer-icon-link:hover {
+  background: var(--card);
+}
+
+.footer-icon-link--home {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.footer-icon-link--home:hover {
+  background: var(--secondary-foreground);
+}
+
+.footer-icon-link:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .footer-icon-link { transition: none; }
+}
+
+/* Let the shared gradient component show through the footer. */
+.content-background { z-index: 1; }
+.content-background .page-main { background: transparent; }
+.footer { border-top: 0; background: transparent; }
