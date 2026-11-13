@@ -1,6 +1,9 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# ==========================================
+# O QUE FAZER? - Git Ignore
+# Next.js + TypeScript + SQLite + Drizzle
+# ==========================================
 
-# dependencies
+# Dependencies
 /node_modules
 /.pnp
 .pnp.*
@@ -10,32 +13,92 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
+# Testing
 /coverage
+/.nyc_output
 
-# next.js
+# Next.js
 /.next/
 /out/
 
-# production
+# Production
 /build
+/dist
 
-# misc
+# Operating system
 .DS_Store
-*.pem
+Thumbs.db
+Desktop.ini
 
-# debug
+# Debug logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# Environment variables
+.env
+.env.*
+!.env.example
 
-# vercel
+# SQLite databases
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+
+# Local database storage
+/data/
+/backups/
+
+# Temporary files
+/tmp/
+/temp/
+*.tmp
+*.temp
+
+# Vercel
 .vercel
 
-# typescript
+# Coolify local configuration
+.coolify/
+
+# TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE and editors
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Security
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local configuration
+*.local
+
+# ==========================================
+# IMPORTANT:
+# Do not ignore:
+#
+# drizzle/
+# drizzle.config.ts
+# src/
+# app/
+# components/
+# public/
+# package.json
+# package-lock.json
+# next.config.ts
+# .env.example
+#
+# These files should be versioned.
+# ==========================================
