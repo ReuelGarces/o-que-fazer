@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { eq } from "drizzle-orm";
 import { database, openDatabase } from "../lib/server/database";
 import { accounts, profiles } from "../lib/server/schema";
 import {
@@ -28,6 +27,7 @@ import {
 } from "../lib/activities";
 
 const directory = mkdtempSync(join(tmpdir(), "oquefazer-tests-"));
+process.env.SESSION_SECRET = crypto.randomUUID();
 process.env.SQLITE_PATH = join(directory, "database.sqlite");
 const input = {
   title: "Ler um livro",
@@ -250,29 +250,19 @@ test("migrações são idempotentes e mantêm integridade, índices e registros"
     reopened.sqlite.close();
   }
 });
-test("limite de login persiste e expira sem confiar em IP ou usuário enviado", () => {
+test("limite persiste, isola credenciais e expira", async () => {
   const now = Date.now() + 60 * 60 * 1000;
-  for (let i = 0; i < 10; i++) reserveLoginAttempt(now);
-  assert.throws(() => reserveLoginAttempt(now), /Muitas tentativas/);
-  const otherConnection = openDatabase(process.env.SQLITE_PATH!);
+  for (let i = 0; i < 5; i++) reserveLoginAttempt("wrong", now);
+  assert.throws(() => reserveLoginAttempt("wrong", now), /Muitas tentativas/);
+  reserveLoginAttempt("correct", now);
+  const other = openDatabase(process.env.SQLITE_PATH!);
   try {
-    assert.equal(
-      (
-        otherConnection.sqlite
-          .prepare("select count from login_attempts where key = 'login'")
-          .get() as { count: number }
-      ).count,
-      10,
-    );
-  } finally {
-    otherConnection.sqlite.close();
-  }
-  reserveLoginAttempt(now + 15 * 60 * 1000 + 1);
-  assert.ok(
-    database()
-      .db.select()
-      .from(accounts)
-      .where(eq(accounts.id, accountId))
-      .get(),
-  );
+    assert.equal((other.sqlite.prepare("select count from login_attempts where key = ?").get("login:credential:wrong") as { count: number }).count, 5);
+  } finally { other.sqlite.close(); }
+  reserveLoginAttempt("wrong", now + 15 * 60_000);
+  for (let i = 0; i < 119; i++) reserveLoginAttempt(`guess-${i}`, now + 15 * 60_000);
+  assert.throws(() => reserveLoginAttempt("new", now + 15 * 60_000), /Muitas tentativas/);
+  reserveLoginAttempt("new", now + 16 * 60_000);
+  await assert.rejects(authenticate("shared", "wrong"));
+  assert.equal((await authenticate("shared", password)).id, accountId);
 });

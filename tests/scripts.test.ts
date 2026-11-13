@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, readdirSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { openDatabase } from "../lib/server/database";
@@ -34,6 +34,15 @@ test("scripts: migrações repetidas, setup secreto, backup consistente e startu
         assert.deepEqual(restored.sqlite.pragma("integrity_check"), [{ integrity_check: "ok" }]);
       } finally { restored.sqlite.close(); }
     } finally { live.sqlite.close(); }
+    const backupDirectory = join(directory, "snapshots");
+    for (let i = 0; i < 3; i++) assert.equal(run("backup", { SQLITE_BACKUP_PATH: undefined, SQLITE_BACKUP_DIR: backupDirectory, SQLITE_BACKUP_KEEP: "2" }).status, 0);
+    const snapshots = readdirSync(backupDirectory);
+    assert.equal(snapshots.length, 2);
+    if (process.platform !== "win32") for (const name of snapshots)
+      assert.equal(statSync(join(backupDirectory, name)).mode & 0o777, 0o600);
+    assert.equal(run("backup", { SQLITE_BACKUP_PATH: undefined, SQLITE_BACKUP_DIR: backupDirectory, SQLITE_BACKUP_KEEP: "0" }).status, 1);
+    assert.equal(readdirSync(backupDirectory).length, 2);
+    assert.equal(run("backup", { SQLITE_PATH: join(directory, "missing.sqlite"), SQLITE_BACKUP_PATH: join(directory, "failed.sqlite") }).status, 1);
     assert.equal(run("start", { SESSION_SECRET: "", APP_ORIGIN: "" }).status, 1);
     assert.equal(run("start", { SESSION_SECRET: crypto.randomUUID(), APP_ORIGIN: "http://localhost:3000" }).status, 1);
   } finally { rmSync(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }); }

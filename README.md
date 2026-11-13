@@ -120,7 +120,7 @@ npx playwright install chromium
 npm run test:ui
 ```
 
-Os testes unitários usam arquivos temporários isolados e cobrem validações, setup, Argon2id, CRUD, isolamento, concorrência, importação/exportação, migração local, rollback, integridade e idempotência SQLite. A integração inicia o build Next.js em uma porta livre, com credenciais aleatórias e banco temporário; verifica páginas privadas, CSRF, cookies de produção, troca de perfil, CRUD, importações, autorização, logout e expiração. Execute o build antes da integração e dos testes de navegador. O teste de navegador cobre login, erro de autenticação, seleção e edição de perfis, CRUD, filtros, exportação/restauração JSON, migração local, manutenção do formulário em falhas e envio pendente. Também salva capturas de desktop (1440 px) e celular (390 px) fora do repositório; `UI_ARTIFACT_DIR` permite escolher o diretório. O workflow **Quality Checks** existente continua compatível com instalação via `npm ci`, lint, build e TypeScript.
+Os testes unitários usam arquivos temporários isolados e cobrem validações, setup, Argon2id, CRUD, isolamento, concorrência, importação/exportação, migração local, rollback, integridade e idempotência SQLite. A integração inicia o build Next.js em uma porta livre, com credenciais aleatórias e banco temporário; verifica páginas privadas, CSRF, cookies de produção, troca de perfil, CRUD, importações, autorização, logout e expiração. Execute o build antes da integração e dos testes de navegador. O teste de navegador cobre login, erro de autenticação, seleção e edição de perfis, CRUD, filtros, exportação/restauração JSON, migração local, manutenção do formulário em falhas e envio pendente. Também salva capturas de desktop (1440 px) e celular (390 px) fora do repositório; `UI_ARTIFACT_DIR` permite escolher o diretório.
 
 ## Arquivos da implementação
 
@@ -139,8 +139,37 @@ Dependências adicionadas de runtime: `drizzle-orm`, `better-sqlite3`, `iron-ses
 
 Uma conta, exatamente dois perfis, uma instância Node.js e um arquivo SQLite local. Os perfis compartilham acesso: não são uma barreira de privacidade entre as duas pessoas. A seleção é compartilhada pelas abas do mesmo navegador; o servidor bloqueia operações de páginas com o perfil anterior. Navegadores/dispositivos distintos têm sessões independentes.
 
-A entrada permite dez tentativas globais por janela de 15 minutos, inclusive tentativas válidas. O limite persiste em SQLite e não confia em cabeçalhos de IP encaminhados; uma sequência de tentativas pode temporariamente impedir o acesso das duas pessoas. Não há cadastro público, recuperação de senha, troca de senha pela interface ou serviços externos. Preserve sua senha e backups. Imagens externas são carregadas pelo navegador a partir das URLs informadas.
 
 ## Contribuição e licença
 
 Veja [CONTRIBUTING.md](CONTRIBUTING.md), [PRODUCT.md](PRODUCT.md), [DESIGN.md](DESIGN.md) e [LICENSE](LICENSE). Preserve a interface em português e não versione `.env`, senhas ou arquivos SQLite reais.
+
+## Controles de login em produção
+
+O limite persistente agora é de cinco verificações por combinação de usuário/senha em 15 minutos. A chave usa HMAC-SHA256 com SESSION_SECRET, sem armazenar senhas tentadas. Login correto remove seu contador. Erros com outras senhas não bloqueiam a senha correta. Um teto global de 120 verificações por minuto limita o trabalho Argon2 e protege contra dicionários com senhas diferentes. Ataques contínuos ainda podem provocar indisponibilidade; este mecanismo não resolve DDoS. As reservas são atômicas e os registros expirados são removidos na tentativa seguinte. O contador global legado é ignorado e expira naturalmente. A troca do segredo também muda as chaves dos contadores.
+
+Nenhum cabeçalho de IP encaminhado é usado para limitação ou autorização. Isso evita confiar em X-Forwarded-For controlável pelo cliente e funciona atrás do proxy Coolify. Exponha somente o proxy TLS e restrinja a porta interna. Limites no proxy são uma defesa adicional opcional. Respostas de usuário/senha continuam genéricas, com verificação Argon2id também para usuários desconhecidos. Não há recuperação pública de senha nem serviços externos obrigatórios.
+
+## Agendamento e retenção de backups
+
+O script abre somente um banco existente em leitura, sem migrá-lo. Usa a [API online SQLite](https://www.sqlite.org/backup.html), verifica integridade e cria o destino exclusivamente com modo 600 desde o primeiro byte. Falhas retornam código não zero e removem o destino parcial. O diretório deve ser privado e não gravável por terceiros.
+
+Configure `SQLITE_BACKUP_DIR=/backups` para nomes únicos automáticos e `SQLITE_BACKUP_KEEP=14` para reter os últimos 14 snapshots (inteiro positivo). A retenção ocorre após um snapshot íntegro, somente sobre arquivos regulares com o padrão gerado. `SQLITE_BACKUP_PATH` mantém o modo manual, sem retenção. Nunca use o banco ativo como destino. Restrinja o diretório a 700 e UID/GID 1000; em Windows configure ACLs.
+
+Agende no host com cron/systemd ou em executor externo ao container principal. Exemplo diário às 03:00, adaptando imagem e volumes:
+
+```cron
+0 3 * * * flock -n /srv/oquefazer/backup.lock docker run --rm --network none --mount source=VOLUME_SQLITE,target=/var/lib/sqlite --mount type=bind,source=/srv/oquefazer/backups,target=/backups -e SQLITE_PATH=/var/lib/sqlite/database.sqlite -e SQLITE_BACKUP_DIR=/backups -e SQLITE_BACKUP_KEEP=14 IMAGEM_DA_APLICACAO npm run db:backup
+```
+
+Prepare o diretório do host para UID/GID 1000 e modo 700. Use a mesma imagem da aplicação e um lock compartilhado por todos os agendamentos; não execute backups concorrentes ou durante migrações. A montagem SQLite precisa permitir acesso aos arquivos WAL/SHM. Não copie esses arquivos separadamente com escritores ativos.
+
+Copie snapshots concluídos para outro servidor ou armazenamento privado, por exemplo com rsync sobre SSH. Credenciais ficam apenas no executor externo. Use criptografia e retenção independente no destino remoto, monitore falhas, espaço livre e idade da última cópia. Falha de upload não afeta a aplicação e não deve apagar a última cópia remota válida.
+
+Ensaio automatizado: `npm test` verifica snapshot com conexão WAL aberta, reabertura isolada, contas/perfis, integridade e retenção. Para ensaio operacional, restaure um snapshot num volume novo sem WAL/SHM antigos, ajuste UID/GID 1000 e modo 600, configure outro domínio e SESSION_SECRET novo e confira login, perfis e atividades. Nunca ensaie sobre dados reais. Para restauração real, pare todos os escritores e siga o procedimento de restauração acima, preservando o conjunto antigo.
+
+## CI e teste de container
+
+Quality Checks executa `npm ci`, `npm run lint`, `npx tsc --noEmit`, `npm test`, `npm run build` e `npm run test:integration`, nessa ordem. Cada falha reprova o job. Chromium é opcional.
+
+O job separado Docker Smoke Test constrói a imagem e verifica Node 24, UID/GID 1000, modo 600 do banco, migrações repetidas, inicialização HTTP, reinício, recriação com o mesmo volume e configurações inválidas. Execute `npm run test:docker` com Docker Linux; somente recursos temporários próprios são removidos. Docker não estava disponível no ambiente local desta implementação; a execução no runner permanece pendente.
