@@ -85,6 +85,9 @@ next-env.d.ts
 # Local configuration
 *.local
 
+# Estado de execução local do Impeccable
+.impeccable/live/
+
 # ==========================================
 # IMPORTANT:
 # Do not ignore:
