@@ -9,7 +9,7 @@ COPY lib ./lib
 COPY public ./public
 COPY scripts ./scripts
 COPY drizzle ./drizzle
-COPY next.config.ts tsconfig.json postcss.config.mjs next-env.d.ts ./
+COPY next.config.ts tsconfig.json postcss.config.mjs ./
 RUN npm run build
 
 FROM node:24-bookworm-slim AS runtime
