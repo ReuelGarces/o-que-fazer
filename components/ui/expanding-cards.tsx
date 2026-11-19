@@ -56,6 +56,16 @@ const categoryStyles: Record<ActivityCategory, string> = {
   Outros: "category-mark--other",
 };
 
+const categoryImages: Record<ActivityCategory, string> = {
+  Livros: "/images/activity-categories/activities-category-books.webp",
+  "Filmes e séries": "/images/activity-categories/activities-category-films.webp",
+  Cursos: "/images/activity-categories/activities-category-courses.webp",
+  Projetos: "/images/activity-categories/activities-category-projects.webp",
+  Lugares: "/images/activity-categories/activities-category-places.webp",
+  "Anotações e observações": "/images/activity-categories/activities-category-notes.webp",
+  Outros: "/images/activity-categories/activities-category-other.webp",
+};
+
 function statusPresentation(status: ActivityStatus) {
   if (status === "Concluído") {
     return { className: "status-done", icon: Check };
@@ -85,14 +95,13 @@ export function ExpandingCards({
         const Icon = categoryIcons[activity.category];
         const status = statusPresentation(activity.status);
         const StatusIcon = status.icon;
+        const imageUrl = activity.imageUrl || categoryImages[activity.category];
         const cardStyle = {
           "--card-flex": isExpanded ? 2.8 : 1,
         } as CSSProperties;
-        const photoStyle = activity.imageUrl
-          ? {
-              backgroundImage: `linear-gradient(180deg, rgba(28, 24, 46, .08) 0%, rgba(28, 24, 46, .78) 100%), url(${JSON.stringify(activity.imageUrl)})`,
-            }
-          : undefined;
+        const photoStyle = {
+          backgroundImage: `linear-gradient(180deg, rgba(28, 24, 46, .08) 0%, rgba(28, 24, 46, .78) 100%), url(${JSON.stringify(imageUrl)})`,
+        };
 
         return (
           <article
@@ -127,7 +136,7 @@ export function ExpandingCards({
               aria-controls={`activity-details-${activity.id}`}
               aria-expanded={isExpanded}
               aria-label={`${isExpanded ? "Recolher" : "Expandir"} ${activity.title}, ${activity.category}, status: ${activity.status}`}
-            className={cn("expanding-card__cover", isExpanded && "is-expanded", activity.imageUrl && "has-image")}
+            className={cn("expanding-card__cover", isExpanded && "is-expanded", "has-image")}
               onClick={() => onExpand(activity.id)}
               onKeyDown={(event) => {
                 if (event.key === "ArrowDown") {
@@ -141,18 +150,11 @@ export function ExpandingCards({
               }}
               type="button"
             >
-              {activity.imageUrl && (
-                <span
-                  aria-hidden="true"
-                  className="expanding-card__visual"
-                  style={photoStyle}
-                />
-              )}
-              {!activity.imageUrl && (
-                <span aria-hidden="true" className="expanding-card__symbol">
-                  <Icon size={isExpanded ? 56 : 44} strokeWidth={1.5} />
-                </span>
-              )}
+              <span
+                aria-hidden="true"
+                className="expanding-card__visual"
+                style={photoStyle}
+              />
               <span className="expanding-card__topline">
                 <span className={cn("category-mark", categoryStyles[activity.category])}>
                   <Icon aria-hidden="true" size={15} strokeWidth={1.5} />
