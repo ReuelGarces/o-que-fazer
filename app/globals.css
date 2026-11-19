@@ -1120,15 +1120,15 @@ summary:focus-visible {
 }
 
 .expanding-card.is-completed .expanding-card__visual {
-  opacity: 0.74;
-  filter: grayscale(0.32) saturate(0.7);
+  opacity: 0.52;
+  filter: grayscale(0.56) saturate(0.48) brightness(1.12);
 }
 
 .expanding-card.is-completed .expanding-card__cover::after {
   position: absolute;
   z-index: 0;
   inset: 0;
-  background: linear-gradient(135deg, rgba(211, 208, 222, 0.22), rgba(196, 194, 208, 0.12));
+  background: linear-gradient(135deg, rgba(218, 216, 228, 0.4), rgba(197, 194, 209, 0.3));
   content: "";
   pointer-events: none;
 }
@@ -1250,7 +1250,10 @@ summary:focus-visible {
 }
 
 .status-done {
-  color: #e5ffec;
+  border-color: #287a4f;
+  background: #287a4f;
+  color: #ffffff;
+  backdrop-filter: none;
 }
 
 .status-in-progress {
