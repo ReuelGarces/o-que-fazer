@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { database, openDatabase } from "../lib/server/database";
-import { accounts, profiles } from "../lib/server/schema";
+import { accounts, activities as activityRows, profiles } from "../lib/server/schema";
 import {
   setupAccount,
   authenticate,
@@ -46,6 +46,10 @@ after(() => {
 
 test("validadores rejeitam categorias, status, URLs, datas, duplicatas e conteúdo inválido", () => {
   assert.equal(validateActivityInput(input).title, input.title);
+  assert.equal(
+    validateActivityInput({ ...input, category: "Anotações e observações" }).category,
+    "Anotações e observações",
+  );
   for (const change of [
     { category: "inválida" },
     { status: "inválido" },
@@ -212,6 +216,11 @@ test("edição de perfis valida propriedade, nome e avatar", () => {
 });
 test("migrações são idempotentes e mantêm integridade, índices e registros", () => {
   const original = snapshot(accountId, first);
+  const migrationsBefore = (
+    database().sqlite
+      .prepare("select count(*) as n from __drizzle_migrations")
+      .get() as { n: number }
+  ).n;
   const reopened = openDatabase(process.env.SQLITE_PATH!);
   try {
     assert.equal(reopened.db.select().from(accounts).all().length, 1);
@@ -238,13 +247,37 @@ test("migrações são idempotentes e mantêm integridade, índices e registros"
         .run(),
     );
     assert.deepEqual(snapshot(accountId, first), original);
+    const timestamp = new Date().toISOString();
+    reopened.db
+      .insert(activityRows)
+      .values({
+        id: "notes-category",
+        profileId: first,
+        title: "Registrar uma observação",
+        description: "",
+        category: "Anotações e observações",
+        status: "Quero fazer",
+        imageUrl: "",
+        linkUrl: "",
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      .run();
+    assert.equal(
+      (
+        reopened.sqlite
+          .prepare("select category from activities where profile_id = ? and id = ?")
+          .get(first, "notes-category") as { category: string }
+      ).category,
+      "Anotações e observações",
+    );
     assert.equal(
       (
         reopened.sqlite
           .prepare("select count(*) as n from __drizzle_migrations")
           .get() as { n: number }
       ).n,
-      1,
+      migrationsBefore,
     );
   } finally {
     reopened.sqlite.close();
