@@ -207,7 +207,7 @@ function ActivityDialog({
                   type="url"
                   value={imageUrl}
                 />
-                <span className="field-hint">A imagem será usada como capa do card.</span>
+                <span className="field-hint">A categoria define a capa padrão. Informe uma URL para usar outra imagem.</span>
               </label>
 
               <label className="form-field" htmlFor="activity-link">
