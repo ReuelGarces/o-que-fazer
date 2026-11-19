@@ -8,6 +8,7 @@ export const ACTIVITY_CATEGORIES = [
   "Cursos",
   "Projetos",
   "Lugares",
+  "Anotações e observações",
   "Outros",
 ] as const;
 

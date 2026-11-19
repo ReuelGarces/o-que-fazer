@@ -35,7 +35,7 @@ Os fluxos abaixo foram verificados no código em 13 de novembro de 2026; descrev
 
 ## Capabilities and Constraints
 
-- Categorias atuais: Livros; Filmes e séries; Cursos; Projetos; Lugares; Outros.
+- Categorias atuais: Livros; Filmes e séries; Cursos; Projetos; Lugares; Anotações e observações; Outros.
 - Status atuais: Quero fazer; Em andamento; Concluído.
 - Cada atividade exige título e tem categoria e status; descrição, imagem e link externo são opcionais. Título e descrição têm limites de 120 e 2.000 caracteres. Imagem e link são referências por URL HTTP ou HTTPS, sem upload de arquivo.
 - A lista oferece busca por título, filtros por categoria e status, e cards expansíveis.

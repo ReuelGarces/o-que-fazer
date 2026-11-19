@@ -324,7 +324,7 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
       const matchesCategory = categoryFilter === "Todas" || activity.category === categoryFilter;
       const matchesStatus = statusFilter === "Todos" || activity.status === statusFilter;
       return matchesSearch && matchesCategory && matchesStatus;
-    });
+    }).sort((left, right) => Number(left.status === "Concluído") - Number(right.status === "Concluído"));
   }, [activities, categoryFilter, search, statusFilter]);
 
   const counts = useMemo(() => ({

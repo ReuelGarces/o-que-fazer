@@ -13,6 +13,7 @@ import {
   GraduationCap,
   MapPin,
   MoreHorizontal,
+  NotebookPen,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -41,6 +42,7 @@ const categoryIcons: Record<ActivityCategory, typeof BookOpen> = {
   Cursos: GraduationCap,
   Projetos: BriefcaseBusiness,
   Lugares: MapPin,
+  "Anotações e observações": NotebookPen,
   Outros: Compass,
 };
 
@@ -50,6 +52,7 @@ const categoryStyles: Record<ActivityCategory, string> = {
   Cursos: "category-mark--courses",
   Projetos: "category-mark--projects",
   Lugares: "category-mark--places",
+  "Anotações e observações": "category-mark--notes",
   Outros: "category-mark--other",
 };
 
@@ -93,7 +96,11 @@ export function ExpandingCards({
 
         return (
           <article
-            className={cn("expanding-card", isExpanded && "is-expanded")}
+            className={cn(
+              "expanding-card",
+              isExpanded && "is-expanded",
+              activity.status === "Concluído" && "is-completed",
+            )}
             key={activity.id}
             onBlurCapture={(event) => {
               const nextTarget = event.relatedTarget;
@@ -132,9 +139,15 @@ export function ExpandingCards({
                   onExpand(activity.id);
                 }
               }}
-              style={photoStyle}
               type="button"
             >
+              {activity.imageUrl && (
+                <span
+                  aria-hidden="true"
+                  className="expanding-card__visual"
+                  style={photoStyle}
+                />
+              )}
               {!activity.imageUrl && (
                 <span aria-hidden="true" className="expanding-card__symbol">
                   <Icon size={isExpanded ? 56 : 44} strokeWidth={1.5} />
