@@ -48,6 +48,7 @@ export const activities = sqliteTable(
         "Cursos",
         "Projetos",
         "Lugares",
+        "Anotações e observações",
         "Outros",
       ],
     }).notNull(),
@@ -67,7 +68,7 @@ export const activities = sqliteTable(
     check("activity_description", sql`length(${t.description}) <= 2000`),
     check(
       "activity_category",
-      sql`${t.category} in ('Livros','Filmes e séries','Cursos','Projetos','Lugares','Outros')`,
+      sql`${t.category} in ('Livros','Filmes e séries','Cursos','Projetos','Lugares','Anotações e observações','Outros')`,
     ),
     check(
       "activity_status",

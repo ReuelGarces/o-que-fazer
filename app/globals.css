@@ -1104,6 +1104,39 @@ summary:focus-visible {
   transition: filter 240ms ease;
 }
 
+.expanding-card__cover.has-image {
+  background-color: #302b43;
+  background-image: none;
+}
+
+.expanding-card__visual {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background-position: center;
+  background-size: cover;
+  pointer-events: none;
+  transition: opacity 240ms ease, filter 240ms ease;
+}
+
+.expanding-card.is-completed .expanding-card__visual {
+  opacity: 0.74;
+  filter: grayscale(0.32) saturate(0.7);
+}
+
+.expanding-card.is-completed .expanding-card__cover::after {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(211, 208, 222, 0.22), rgba(196, 194, 208, 0.12));
+  content: "";
+  pointer-events: none;
+}
+
+.expanding-card.is-completed .expanding-card__symbol {
+  opacity: 0.58;
+}
+
 .expanding-card__cover:hover {
   filter: saturate(1.05) brightness(1.04);
 }
@@ -1119,6 +1152,7 @@ summary:focus-visible {
 
 .expanding-card__symbol {
   position: absolute;
+  z-index: 1;
   top: 50%;
   left: 50%;
   display: grid;
@@ -1191,6 +1225,12 @@ summary:focus-visible {
   border-color: rgba(250, 231, 215, 0.82);
   background: #f8e9df;
   color: #805331;
+}
+
+.category-mark--notes {
+  border-color: rgba(232, 224, 241, 0.86);
+  background: #eee8f5;
+  color: #685477;
 }
 
 .category-mark--other {
