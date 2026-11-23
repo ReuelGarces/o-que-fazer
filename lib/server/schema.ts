@@ -8,6 +8,7 @@ import {
   primaryKey,
   check,
 } from "drizzle-orm/sqlite-core";
+import type { ActivityWeekday } from "../activities";
 
 export const accounts = sqliteTable("accounts", {
   id: text("id").primaryKey(),
@@ -57,6 +58,16 @@ export const activities = sqliteTable(
     }).notNull(),
     imageUrl: text("image_url").notNull(),
     linkUrl: text("link_url").notNull(),
+    isRepeating: integer("is_repeating", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    repeatInterval: text("repeat_interval", {
+      enum: ["Daily", "Weekly", "Monthly"],
+    }),
+    repeatDays: text("repeat_days", { mode: "json" })
+      .$type<ActivityWeekday[]>()
+      .notNull()
+      .default(sql`'[]'`),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
   },
@@ -73,6 +84,10 @@ export const activities = sqliteTable(
     check(
       "activity_status",
       sql`${t.status} in ('Quero fazer','Em andamento','Concluído')`,
+    ),
+    check(
+      "activity_repeat",
+      sql`(${t.isRepeating} = 0 and ${t.repeatInterval} is null and ${t.repeatDays} = '[]') or (${t.isRepeating} = 1 and ${t.repeatInterval} in ('Daily','Weekly','Monthly') and (${t.repeatInterval} = 'Weekly' or ${t.repeatDays} = '[]'))`,
     ),
   ],
 );

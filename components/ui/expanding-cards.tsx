@@ -15,6 +15,7 @@ import {
   MoreHorizontal,
   NotebookPen,
   Pencil,
+  Repeat2,
   Trash2,
 } from "lucide-react";
 import { useState, type CSSProperties } from "react";
@@ -23,12 +24,14 @@ import {
   type Activity,
   type ActivityCategory,
   type ActivityStatus,
+  type ActivityWeekday,
 } from "@/lib/activities";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 type ExpandingCardsProps = {
   activities: Activity[];
+  ariaLabel?: string;
   expandedId: string | null;
   onExpand: (id: string) => void;
   onEdit: (activity: Activity) => void;
@@ -66,6 +69,23 @@ const categoryImages: Record<ActivityCategory, string> = {
   Outros: "/images/activity-categories/activities-category-other.webp",
 };
 
+const weekdayLabels: Record<ActivityWeekday, string> = {
+  Mo: "seg",
+  Tu: "ter",
+  We: "qua",
+  Th: "qui",
+  Fr: "sex",
+  Sa: "sáb",
+  Su: "dom",
+};
+
+function repetitionLabel(activity: Activity) {
+  if (!activity.isRepeating || !activity.repeatInterval) return null;
+  if (activity.repeatInterval === "Daily") return "Repete todos os dias";
+  if (activity.repeatInterval === "Monthly") return "Repete todo mês";
+  return `Repete toda semana · ${activity.repeatDays.map((day) => weekdayLabels[day]).join(", ")}`;
+}
+
 function statusPresentation(status: ActivityStatus) {
   if (status === "Concluído") {
     return { className: "status-done", icon: Check };
@@ -78,6 +98,7 @@ function statusPresentation(status: ActivityStatus) {
 
 export function ExpandingCards({
   activities,
+  ariaLabel = "Atividades cadastradas",
   expandedId,
   onExpand,
   onEdit,
@@ -88,7 +109,7 @@ export function ExpandingCards({
   const [focusedId, setFocusedId] = useState<string | null>(null);
 
   return (
-    <div className="expanding-cards" aria-label="Atividades cadastradas">
+    <div className="expanding-cards" aria-label={ariaLabel}>
       {activities.map((activity) => {
         const isExpanded =
           expandedId === activity.id || hoveredId === activity.id || focusedId === activity.id;
@@ -96,6 +117,7 @@ export function ExpandingCards({
         const status = statusPresentation(activity.status);
         const StatusIcon = status.icon;
         const imageUrl = activity.imageUrl || categoryImages[activity.category];
+        const repeatDescription = repetitionLabel(activity);
         const cardStyle = {
           "--card-flex": isExpanded ? 2.8 : 1,
         } as CSSProperties;
@@ -168,6 +190,12 @@ export function ExpandingCards({
 
               <span className="expanding-card__bottomline">
                 <span className="expanding-card__title">{activity.title}</span>
+                {repeatDescription && (
+                  <span className="expanding-card__repeat">
+                    <Repeat2 aria-hidden="true" size={13} />
+                    {repeatDescription}
+                  </span>
+                )}
                 {isExpanded && (
                   <span className="expanding-card__description">
                     {activity.description || "Sem descrição por enquanto."}

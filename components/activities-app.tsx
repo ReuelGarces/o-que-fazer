@@ -14,6 +14,7 @@ import {
   Filter,
   Info,
   Search,
+  SlidersHorizontal,
   Trash2,
   X,
 } from "lucide-react";
@@ -27,10 +28,13 @@ import {
 import {
   ACTIVITY_CATEGORIES,
   ACTIVITY_STATUSES,
+  ACTIVITY_WEEKDAYS,
   type Activity,
   type ActivityCategory,
   type ActivityInput,
+  type ActivityRepeatInterval,
   type ActivityStatus,
+  type ActivityWeekday,
 } from "@/lib/activities";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -44,6 +48,7 @@ import ExpandingIconButton from "@/components/ui/expanding-icon-button";
 import { ExpandingCards } from "@/components/ui/expanding-cards";
 import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button";
 import { SearchWithCategory } from "@/components/ui/search-with-category";
+import { Component as Scheduler } from "@/components/ui/scheduler";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,6 +62,25 @@ import {
 
 type CategoryFilter = ActivityCategory | "Todas";
 type StatusFilter = ActivityStatus | "Todos";
+
+const STATUS_GROUPS = [
+  { id: "inProgress", status: "Em andamento", label: "Em andamento", icon: Clock3 },
+  { id: "planned", status: "Quero fazer", label: "Quero fazer", icon: CircleHelp },
+  { id: "complete", status: "Concluído", label: "Concluídos", icon: CheckCircle2 },
+] as const;
+
+type StatusGroupId = (typeof STATUS_GROUPS)[number]["id"];
+type StatusGroupState = Record<StatusGroupId, boolean>;
+
+const DEFAULT_STATUS_GROUPS: StatusGroupState = {
+  inProgress: true,
+  planned: true,
+  complete: false,
+};
+
+function statusGroupPreferenceKey(profileId: string) {
+  return `o-que-fazer:status-groups:v1:${profileId}`;
+}
 
 function ActivityDialog({
   activity,
@@ -75,6 +99,11 @@ function ActivityDialog({
   const [description, setDescription] = useState(activity?.description ?? "");
   const [category, setCategory] = useState<ActivityCategory>(activity?.category ?? "Outros");
   const [status, setStatus] = useState<ActivityStatus>(activity?.status ?? "Quero fazer");
+  const [isRepeating, setIsRepeating] = useState(activity?.isRepeating ?? false);
+  const [repeatInterval, setRepeatInterval] = useState<ActivityRepeatInterval>(
+    activity?.repeatInterval ?? "Weekly",
+  );
+  const [repeatDays, setRepeatDays] = useState<ActivityWeekday[]>(activity?.repeatDays ?? []);
   const [imageUrl, setImageUrl] = useState(activity?.imageUrl ?? "");
   const [linkUrl, setLinkUrl] = useState(activity?.linkUrl ?? "");
   const [detailsOpen, setDetailsOpen] = useState(Boolean(
@@ -92,10 +121,24 @@ function ActivityDialog({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (savingRef.current) return;
+    if (isRepeating && repeatInterval === "Weekly" && repeatDays.length === 0) {
+      setError("Escolha pelo menos um dia da semana para repetir a atividade.");
+      return;
+    }
     savingRef.current = true; setSaving(true);
     setError("");
     try {
-      await onSave({ title, description, category, status, imageUrl, linkUrl });
+      await onSave({
+        title,
+        description,
+        category,
+        status,
+        imageUrl,
+        linkUrl,
+        isRepeating,
+        repeatInterval: isRepeating ? repeatInterval : null,
+        repeatDays: isRepeating && repeatInterval === "Weekly" ? repeatDays : [],
+      });
       dialogRef.current?.close();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível salvar a atividade.");
@@ -174,6 +217,23 @@ function ActivityDialog({
               ))}
             </select>
           </label>
+
+          <Scheduler
+            daysOfWeek={[...ACTIVITY_WEEKDAYS]}
+            isRepeating={isRepeating}
+            repeatInterval={repeatInterval}
+            selectedDays={repeatDays}
+            setRepeatInterval={(interval) => {
+              setRepeatInterval(interval as ActivityRepeatInterval);
+              if (interval !== "Weekly") setRepeatDays([]);
+            }}
+            setSelectedDays={(days) => {
+              setRepeatDays(days.filter((day): day is ActivityWeekday =>
+                ACTIVITY_WEEKDAYS.includes(day as ActivityWeekday),
+              ));
+            }}
+            toggleRepeating={() => setIsRepeating((current) => !current)}
+          />
 
           <details
             className="optional-fields form-field--wide"
@@ -299,6 +359,8 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("Todas");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("Todos");
+  const [groupDefaults, setGroupDefaults] = useState<StatusGroupState>({ ...DEFAULT_STATUS_GROUPS });
+  const [openGroups, setOpenGroups] = useState<StatusGroupState>({ ...DEFAULT_STATUS_GROUPS });
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Activity | null>(null);
   const [dialogActivity, setDialogActivity] = useState<Activity | null | undefined>();
@@ -307,6 +369,26 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
   function showNotice(message: string, tone: CalloutTone = "success") {
     setNotice({ message, tone });
   }
+
+  useEffect(() => {
+    const preferences = { ...DEFAULT_STATUS_GROUPS };
+    try {
+      const saved = window.localStorage.getItem(statusGroupPreferenceKey(profile.id));
+      if (saved) {
+        const parsed: unknown = JSON.parse(saved);
+        if (typeof parsed === "object" && parsed !== null) {
+          for (const group of STATUS_GROUPS) {
+            const value = (parsed as Record<string, unknown>)[group.id];
+            if (typeof value === "boolean") preferences[group.id] = value;
+          }
+        }
+      }
+    } catch {
+      // Keep the product defaults when this browser blocks local storage.
+    }
+    setGroupDefaults(preferences);
+    setOpenGroups(preferences);
+  }, [profile.id]);
 
   useEffect(() => {
     let mounted = true;
@@ -326,6 +408,11 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
       return matchesSearch && matchesCategory && matchesStatus;
     }).sort((left, right) => Number(left.status === "Concluído") - Number(right.status === "Concluído"));
   }, [activities, categoryFilter, search, statusFilter]);
+
+  const visibleStatusGroups = useMemo(() => STATUS_GROUPS.map((group) => ({
+    ...group,
+    activities: filteredActivities.filter((activity) => activity.status === group.status),
+  })).filter((group) => group.activities.length > 0), [filteredActivities]);
 
   const counts = useMemo(() => ({
     planned: activities.filter((activity) => activity.status === "Quero fazer").length,
@@ -357,8 +444,24 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
     showNotice(dialogActivity ? "Atividade atualizada." : "Atividade adicionada à sua lista.");
   }
   async function changeStatus(id: string, status: ActivityStatus) {
-    try { await write(`activities/${encodeURIComponent(id)}`, "PATCH", { status }); showNotice("Status atualizado."); }
+    try {
+      await write(`activities/${encodeURIComponent(id)}`, "PATCH", { status });
+      const destination = STATUS_GROUPS.find((group) => group.status === status);
+      if (destination) setOpenGroups((current) => ({ ...current, [destination.id]: true }));
+      showNotice("Status atualizado.");
+    }
     catch (cause) { showNotice(cause instanceof Error ? cause.message : "Não foi possível atualizar o status.", "danger"); }
+  }
+
+  function updateGroupDefault(groupId: StatusGroupId, openByDefault: boolean) {
+    const next = { ...groupDefaults, [groupId]: openByDefault };
+    setGroupDefaults(next);
+    setOpenGroups((current) => ({ ...current, [groupId]: openByDefault }));
+    try {
+      window.localStorage.setItem(statusGroupPreferenceKey(profile.id), JSON.stringify(next));
+    } catch {
+      showNotice("Não foi possível salvar a preferência neste navegador.", "info");
+    }
   }
   function removeOne(activity: Activity, trigger: HTMLButtonElement) {
     deleteTriggerRef.current = trigger;
@@ -520,6 +623,37 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
                   </select>
                 </label>
               </div>
+              <details className="status-defaults">
+                <summary>
+                  <span><SlidersHorizontal aria-hidden="true" size={15} /> Abertura padrão</span>
+                  <ChevronDown aria-hidden="true" size={16} />
+                </summary>
+                <div className="status-defaults__content">
+                  <p>Escolha quais grupos começam abertos quando você voltar à lista.</p>
+                  <div className="status-defaults__options">
+                    {STATUS_GROUPS.map((group) => {
+                      const Icon = group.icon;
+                      return (
+                        <label className="status-defaults__option" key={group.id}>
+                          <span className={`status-defaults__icon status-defaults__icon--${group.id}`}>
+                            <Icon aria-hidden="true" size={15} />
+                          </span>
+                          <span className="status-defaults__label">{group.label}</span>
+                          <span className="status-defaults__hint">Abrir por padrão</span>
+                          <input
+                            aria-label={`Abrir ${group.label} por padrão`}
+                            checked={groupDefaults[group.id]}
+                            onChange={(event) => updateGroupDefault(group.id, event.target.checked)}
+                            role="switch"
+                            type="checkbox"
+                          />
+                          <span aria-hidden="true" className="status-defaults__switch" />
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </details>
             </>
           )}
 
@@ -542,14 +676,49 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
               </div>
             ) : filteredActivities.length > 0 ? (
               <>
-                <ExpandingCards
-                  activities={filteredActivities}
-                  expandedId={expandedId && filteredActivities.some((item) => item.id === expandedId) ? expandedId : null}
-                  onDelete={removeOne}
-                  onEdit={(activity) => setDialogActivity(activity)}
-                  onExpand={(id) => setExpandedId((current) => current === id ? null : id)}
-                  onStatusChange={changeStatus}
-                />
+                <div aria-label="Atividades por status" className="activity-status-groups">
+                  {visibleStatusGroups.map((group) => {
+                    const Icon = group.icon;
+                    return (
+                      <details
+                        className={`activity-status-group activity-status-group--${group.id}`}
+                        key={group.id}
+                        onToggle={(event) => {
+                          const isOpen = event.currentTarget.open;
+                          setOpenGroups((current) => current[group.id] === isOpen
+                            ? current
+                            : { ...current, [group.id]: isOpen },
+                          );
+                        }}
+                        open={openGroups[group.id]}
+                      >
+                        <summary>
+                          <span className={`activity-status-group__icon activity-status-group__icon--${group.id}`}>
+                            <Icon aria-hidden="true" size={16} strokeWidth={1.8} />
+                          </span>
+                          <span className="activity-status-group__copy">
+                            <span className="activity-status-group__title">{group.label}</span>
+                            <span className="activity-status-group__count">
+                              {group.activities.length} {group.activities.length === 1 ? "atividade" : "atividades"}
+                            </span>
+                          </span>
+                          <ChevronDown aria-hidden="true" className="activity-status-group__chevron" size={17} />
+                        </summary>
+                        <div className="activity-status-group__content">
+                          <ExpandingCards
+                            activities={group.activities}
+                            ariaLabel={`Atividades: ${group.label}`}
+                            expandedId={expandedId && group.activities.some((item) => item.id === expandedId) ? expandedId : null}
+                            onDelete={removeOne}
+                            onEdit={(activity) => setDialogActivity(activity)}
+                            onExpand={(id) => setExpandedId((current) => current === id ? null : id)}
+                            onStatusChange={changeStatus}
+                          />
+                        </div>
+                      </details>
+                    );
+                  })}
+                </div>
                 <div className="cards-footnote">
                   <span><span className="footnote-dot" /> {activeFilters ? `${filteredActivities.length} ${filteredActivities.length === 1 ? "resultado" : "resultados"}` : `${activities.length} ${activities.length === 1 ? "ideia guardada" : "ideias guardadas"}`}</span>
                   <span>Passe o cursor ou toque em um card para ver detalhes</span>

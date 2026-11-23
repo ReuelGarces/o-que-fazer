@@ -18,8 +18,13 @@ export const ACTIVITY_STATUSES = [
   "Concluído",
 ] as const;
 
+export const ACTIVITY_REPEAT_INTERVALS = ["Daily", "Weekly", "Monthly"] as const;
+export const ACTIVITY_WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] as const;
+
 export type ActivityCategory = (typeof ACTIVITY_CATEGORIES)[number];
 export type ActivityStatus = (typeof ACTIVITY_STATUSES)[number];
+export type ActivityRepeatInterval = (typeof ACTIVITY_REPEAT_INTERVALS)[number];
+export type ActivityWeekday = (typeof ACTIVITY_WEEKDAYS)[number];
 
 export type Activity = {
   id: string;
@@ -29,13 +34,24 @@ export type Activity = {
   status: ActivityStatus;
   imageUrl: string;
   linkUrl: string;
+  isRepeating: boolean;
+  repeatInterval: ActivityRepeatInterval | null;
+  repeatDays: ActivityWeekday[];
   createdAt: string;
   updatedAt: string;
 };
 
 export type ActivityInput = Pick<
   Activity,
-  "title" | "description" | "category" | "status" | "imageUrl" | "linkUrl"
+  | "title"
+  | "description"
+  | "category"
+  | "status"
+  | "imageUrl"
+  | "linkUrl"
+  | "isRepeating"
+  | "repeatInterval"
+  | "repeatDays"
 >;
 
 export type ActivityBackup = {
@@ -89,6 +105,34 @@ export function validateActivity(value: unknown): Activity {
   if (!ACTIVITY_STATUSES.includes(value.status as ActivityStatus)) {
     throw new ValidationError("Uma atividade contém um status inválido.");
   }
+  if (value.isRepeating !== undefined && typeof value.isRepeating !== "boolean") {
+    throw new ValidationError("A repetição da atividade está inválida.");
+  }
+  const isRepeating = value.isRepeating === true;
+  let repeatInterval: ActivityRepeatInterval | null = null;
+  let repeatDays: ActivityWeekday[] = [];
+  if (isRepeating) {
+    if (!ACTIVITY_REPEAT_INTERVALS.includes(value.repeatInterval as ActivityRepeatInterval)) {
+      throw new ValidationError("Escolha uma frequência de repetição válida.");
+    }
+    repeatInterval = value.repeatInterval as ActivityRepeatInterval;
+    if (repeatInterval === "Weekly") {
+      if (!Array.isArray(value.repeatDays)) {
+        throw new ValidationError("Escolha os dias da semana para a repetição.");
+      }
+      const selectedDays = new Set<ActivityWeekday>();
+      for (const day of value.repeatDays) {
+        if (!ACTIVITY_WEEKDAYS.includes(day as ActivityWeekday)) {
+          throw new ValidationError("Uma atividade contém um dia da semana inválido.");
+        }
+        selectedDays.add(day as ActivityWeekday);
+      }
+      repeatDays = ACTIVITY_WEEKDAYS.filter((day) => selectedDays.has(day));
+      if (repeatDays.length === 0) {
+        throw new ValidationError("Escolha pelo menos um dia da semana.");
+      }
+    }
+  }
   if (typeof value.description !== "string" || value.description.length > 2000) {
     throw new ValidationError("A descrição da atividade está inválida.");
   }
@@ -107,6 +151,9 @@ export function validateActivity(value: unknown): Activity {
     status: value.status as ActivityStatus,
     imageUrl: validateOptionalUrl(value.imageUrl, "URL da imagem"),
     linkUrl: validateOptionalUrl(value.linkUrl, "link externo"),
+    isRepeating,
+    repeatInterval,
+    repeatDays,
     createdAt: value.createdAt,
     updatedAt: value.updatedAt,
   };
@@ -168,7 +215,9 @@ export function validateActivityInput(value: unknown): ActivityInput {
   const now = new Date().toISOString();
   const record = validateActivity({ ...value, id: "input", createdAt: now, updatedAt: now });
   return { title: record.title, description: record.description.trim(), category: record.category,
-    status: record.status, imageUrl: record.imageUrl, linkUrl: record.linkUrl };
+    status: record.status, imageUrl: record.imageUrl, linkUrl: record.linkUrl,
+    isRepeating: record.isRepeating, repeatInterval: record.repeatInterval,
+    repeatDays: record.repeatDays };
 }
 
 export function makeBackup(activities: Activity[]): ActivityBackup {
