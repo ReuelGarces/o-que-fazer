@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 
 type ExpandingCardsProps = {
   activities: ActivityCard[];
+  ariaLabel?: string;
   expandedId: string | null;
   onExpand: (id: string) => void;
   onEdit: (activity: ActivityCard) => void;
@@ -81,6 +82,7 @@ function statusPresentation(status: ActivityStatus) {
 
 export function ExpandingCards({
   activities,
+  ariaLabel = "Atividades cadastradas",
   expandedId,
   onExpand,
   onEdit,
@@ -91,7 +93,7 @@ export function ExpandingCards({
   const [focusedId, setFocusedId] = useState<string | null>(null);
 
   return (
-    <div className="expanding-cards" aria-label="Atividades cadastradas">
+    <div aria-label={ariaLabel} className="expanding-cards">
       {activities.map((activity) => {
         const cardKey = activity.cardKey ?? activity.id;
         const isExpanded =

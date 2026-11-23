@@ -1036,6 +1036,235 @@ summary:focus-visible {
   padding-right: 4px;
 }
 
+.status-defaults {
+  margin-top: 12px;
+  color: var(--foreground);
+}
+
+.status-defaults > summary {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 9px;
+  padding: 0 7px;
+  color: #554b77;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.status-defaults > summary::-webkit-details-marker,
+.activity-status-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+.status-defaults > summary > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.status-defaults > summary > svg,
+.activity-status-group__chevron {
+  color: var(--primary);
+  transition: transform 180ms ease;
+}
+
+.status-defaults[open] > summary > svg,
+.activity-status-group[open] .activity-status-group__chevron {
+  transform: rotate(180deg);
+}
+
+.status-defaults > summary:focus-visible,
+.activity-status-group > summary:focus-visible {
+  border-radius: 8px;
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.status-defaults > summary:hover,
+.activity-status-group > summary:hover {
+  color: #40365f;
+  background: rgba(232, 229, 249, 0.42);
+}
+
+.status-defaults__content {
+  width: min(100%, 740px);
+  margin-top: 7px;
+  padding: 15px 16px 12px;
+  border: 1px solid rgba(125, 110, 183, 0.15);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 8px 24px rgba(57, 52, 84, 0.055);
+}
+
+.status-defaults__content > p {
+  margin: 0 0 10px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.status-defaults__options {
+  display: grid;
+}
+
+.status-defaults__option {
+  position: relative;
+  display: grid;
+  min-height: 47px;
+  grid-template-columns: 27px minmax(100px, 1fr) minmax(105px, auto) 44px;
+  align-items: center;
+  gap: 9px;
+  border-top: 1px solid rgba(91, 87, 156, 0.1);
+  cursor: pointer;
+}
+
+.status-defaults__icon {
+  display: grid;
+  width: 25px;
+  height: 25px;
+  place-items: center;
+  border-radius: 8px;
+}
+
+.status-defaults__icon--inProgress,
+.activity-status-group__icon--inProgress {
+  background: #e2eaf7;
+  color: #3c5e86;
+}
+
+.status-defaults__icon--planned,
+.activity-status-group__icon--planned {
+  background: #ece7ff;
+  color: #5e4a9a;
+}
+
+.status-defaults__icon--complete,
+.activity-status-group__icon--complete {
+  background: #e5f1e9;
+  color: #396b4f;
+}
+
+.status-defaults__label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.status-defaults__hint {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.status-defaults__option input {
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  width: 44px;
+  height: 27px;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.status-defaults__switch {
+  position: relative;
+  display: block;
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  background: #e2e0eb;
+  transition: background-color 180ms ease;
+}
+
+.status-defaults__switch::after {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(40, 36, 64, 0.2);
+  content: "";
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.status-defaults__option input:checked + .status-defaults__switch {
+  background: var(--primary);
+}
+
+.status-defaults__option input:checked + .status-defaults__switch::after {
+  transform: translateX(18px);
+}
+
+.status-defaults__option input:focus-visible + .status-defaults__switch {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.activity-status-groups {
+  display: grid;
+  gap: 13px;
+}
+
+.activity-status-group {
+  border-bottom: 1px solid rgba(91, 87, 156, 0.16);
+}
+
+.activity-status-group > summary {
+  display: flex;
+  min-height: 62px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 6px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.activity-status-group__icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border-radius: 11px;
+}
+
+.activity-status-group__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.activity-status-group__title {
+  color: var(--foreground);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.activity-status-group__count {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.activity-status-group__content {
+  padding: 3px 0 18px;
+}
+
+.expanding-card__repeat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #f5efff;
+  font-size: 11px;
+  font-weight: 500;
+}
+
 .search-with-category__category option,
 .status-filter option,
 .status-select option,
@@ -1987,6 +2216,186 @@ summary:focus-visible {
   font-weight: 400;
 }
 
+.scheduler {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid rgba(125, 110, 183, 0.16);
+  border-radius: 16px;
+  background: rgba(236, 235, 255, 0.43);
+}
+
+.scheduler__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.scheduler__header h3 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.scheduler__header p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.scheduler__switch {
+  position: relative;
+  display: inline-flex;
+  width: 52px;
+  height: 30px;
+  flex: 0 0 52px;
+  align-items: center;
+  padding: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: #e1dfec;
+  cursor: pointer;
+  transition: background-color 180ms ease;
+}
+
+.scheduler__switch[aria-checked="true"] {
+  background: var(--primary);
+}
+
+.scheduler__switch:hover {
+  background: #65578f;
+}
+
+.scheduler__switch[aria-checked="true"]:hover {
+  background: #6f60a6;
+}
+
+.scheduler__switch:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.scheduler__switch-thumb {
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(40, 36, 64, 0.18);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.scheduler__switch[aria-checked="true"] .scheduler__switch-thumb {
+  transform: translateX(22px);
+}
+
+.scheduler__controls {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.8fr) minmax(0, 1.2fr);
+  align-items: start;
+  gap: 16px;
+  transition: opacity 180ms ease;
+}
+
+.scheduler__controls.is-disabled {
+  opacity: 0.55;
+}
+
+.scheduler__frequency {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.scheduler__frequency select,
+.scheduler__frequency input {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 11px;
+  border: 1px solid var(--input);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--foreground);
+  font-size: 13px;
+  outline: none;
+}
+
+.scheduler__frequency select:focus-visible,
+.scheduler__frequency input:focus-visible {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(125, 110, 183, 0.14);
+}
+
+.scheduler__frequency select:disabled,
+.scheduler__frequency input:disabled {
+  cursor: not-allowed;
+}
+
+.scheduler__weekdays {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.scheduler__weekdays legend {
+  margin-bottom: 7px;
+  padding: 0;
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.scheduler__day-list {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.scheduler__day {
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 3px;
+  border: 1px solid rgba(125, 110, 183, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #56516d;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.scheduler__day:hover {
+  border-color: rgba(125, 110, 183, 0.55);
+}
+
+.scheduler__day.is-selected {
+  border-color: rgba(125, 110, 183, 0.4);
+  background: #e7e2fa;
+  color: #40365f;
+  font-weight: 600;
+}
+
+.scheduler__day:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.scheduler__weekdays > p {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 400;
+}
+
 .dialog-actions {
   display: flex;
   justify-content: flex-end;
@@ -2264,6 +2673,48 @@ summary:focus-visible {
   .status-filter-wrap > svg {
     width: 13px;
     height: 13px;
+  }
+
+  .status-defaults__content {
+    padding: 12px 12px 9px;
+  }
+
+  .status-defaults__option {
+    grid-template-columns: 27px minmax(0, 1fr) 44px;
+    gap: 8px;
+  }
+
+  .status-defaults__hint {
+    display: none;
+  }
+
+  .activity-status-group > summary {
+    min-height: 56px;
+    gap: 9px;
+    padding-inline: 3px;
+  }
+
+  .activity-status-group__copy {
+    flex-wrap: wrap;
+    gap: 3px 8px;
+  }
+
+  .activity-status-group__title {
+    font-size: 15px;
+  }
+
+  .scheduler__controls {
+    grid-template-columns: 1fr;
+    gap: 13px;
+  }
+
+  .scheduler__day-list {
+    gap: 4px;
+  }
+
+  .scheduler__day {
+    min-height: 34px;
+    font-size: 10px;
   }
 
   .cards-area {
