@@ -11,9 +11,10 @@ import { database } from "../lib/server/database";
 import { setupAccount } from "../lib/server/credentials";
 
 test(
-  "navegador: login, perfis, formulário assíncrono, CRUD, filtros e seletor com orb",
+  "navegador: login, perfis, CRUD, seção concluída, recorrência e filtros",
   { timeout: 120000 },
   async () => {
+    const browser = await chromium.launch();
     const directory = mkdtempSync(join(tmpdir(), "oquefazer-browser-"));
     process.env.SQLITE_PATH = join(directory, "test.sqlite");
     const password = crypto.randomUUID();
@@ -44,7 +45,6 @@ test(
         stdio: "ignore",
       },
     );
-    const browser = await chromium.launch();
     const page = await browser.newPage({
       viewport: { width: 1440, height: 1000 },
       reducedMotion: "reduce",
@@ -173,6 +173,38 @@ test(
       await page
         .getByRole("button", { name: "Excluir atividade", exact: true })
         .click();
+      await expect(
+        page.getByRole("heading", {
+          name: "Comece por algo que sempre quis fazer",
+        }),
+      ).toBeVisible();
+      await page.getByRole("button", { name: "Adicionar primeira ideia" }).click();
+      await page.locator("#activity-title").fill("Caminhar");
+      await expect(page.locator("#activity-recurrence")).toBeVisible();
+      await page.locator("#activity-recurrence").selectOption("daily");
+      await page.getByRole("button", { name: "Adicionar à lista" }).click();
+      await expect(page.getByRole("dialog")).not.toBeVisible();
+      await page.locator(".expanding-card__title").click();
+      await page.getByLabel("Alterar status de Caminhar").selectOption("Concluído");
+      await expect(page.getByRole("status")).toContainText("Status atualizado");
+      const completedToggle = page.locator(".completed-section__toggle");
+      await expect(completedToggle).toHaveAttribute("aria-expanded", "false");
+      await expect(page.locator("#completed-cards .expanding-card__title")).toBeHidden();
+      await page.getByLabel("Filtrar por status").selectOption("Concluído");
+      await expect(completedToggle).toHaveAttribute("aria-expanded", "true");
+      await expect(page.locator("#completed-cards .expanding-card__title")).toHaveText("Caminhar");
+      await expect(page.locator("#completed-cards .expanding-card__recurrence")).toHaveText("Diário");
+      await page.locator("#completed-cards .expanding-card__title").click();
+      await page.getByRole("button", { name: "Editar Caminhar", exact: true }).click();
+      await page.locator("#activity-recurrence").selectOption("weekly");
+      await page.getByRole("button", { name: "Salvar alterações" }).click();
+      await expect(page.getByRole("dialog")).not.toBeVisible();
+      await page.getByLabel("Alterar status de Caminhar").selectOption("Quero fazer");
+      await expect(page.getByRole("status")).toContainText("Status atualizado");
+      await page.getByLabel("Filtrar por status").selectOption("Todos");
+      await expect(page.locator(".expanding-card__title")).toHaveCount(2);
+      await page.getByRole("button", { name: "Excluir Caminhar", exact: true }).first().click();
+      await page.getByRole("button", { name: "Excluir atividade", exact: true }).click();
       await expect(
         page.getByRole("heading", {
           name: "Comece por algo que sempre quis fazer",

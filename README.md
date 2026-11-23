@@ -1,6 +1,6 @@
 # O que fazer?
 
-Uma lista pessoal de ideias para viver, aprender e realizar. Uma única conta compartilhada dá acesso a **dois perfis independentes**, com atividades, busca, categorias, status e backups próprios. Interface em português, com o design Lavender Glass, cards expansíveis e suporte a telas pequenas.
+Uma lista pessoal de ideias para viver, aprender e realizar. Uma única conta compartilhada dá acesso a **dois perfis independentes**, com atividades, busca, categorias, status, recorrência e backups próprios. Interface em português, com o design Lavender Glass, cards expansíveis e suporte a telas pequenas.
 
 ## Tecnologias e arquitetura
 
@@ -72,6 +72,8 @@ npm run db:migrate
 
 Revise e versione o SQL e os metadados gerados. Nunca edite uma migração já aplicada em instalações reais. Faça backup antes de atualizar. O migrador Drizzle registra migrações concluídas e não as reaplica, preservando os dados. `npm start` aplica as migrações **antes de iniciar o Next.js, após a montagem do volume**; a conexão também verifica as migrações na primeira abertura em desenvolvimento. O build não cria banco nem exige credenciais.
 
+A migração incremental `0002` adiciona campos de recorrência com padrão `none` e cria `activity_completions`, vinculada ao perfil e à atividade. Ela não apaga nem recria atividades existentes e é aplicada pelo mesmo inicializador; não execute `db:setup` em uma instalação existente.
+
 SQLite usa WAL, chaves estrangeiras e espera de até cinco segundos para locks. A abertura e as migrações verificam efetivamente a possibilidade de criar/escrever no arquivo. Falhas interrompem a inicialização. Não execute migrações concorrentes durante atualizações; mantenha uma instância.
 
 ## Dados antigos e backups JSON
@@ -80,7 +82,9 @@ Ao abrir a lista, o navegador procura a chave `o-que-quero-fazer:activities:v1`.
 
 A migração valida todos os registros no servidor, preserva IDs e datas, ignora registros idênticos já importados e rejeita IDs conflitantes **sem importar parcialmente**. O aviso de conclusão informa quantos registros foram adicionados ou já existiam. Confira a lista e exporte um JSON para verificar o resultado. Os dados antigos do navegador nunca são apagados automaticamente. Se estiverem inválidos, faça uma cópia antes de corrigi-los.
 
-**Exportar** consulta o servidor e baixa o backup `ActivityBackup` versão 1 do perfil selecionado. **Importar** valida um backup dessa versão e solicita confirmação antes de substituir todas as atividades **somente desse perfil**, em uma transação. O outro perfil não é afetado. Limites: 8 MB por requisição e 10.000 atividades por importação. Títulos têm até 120 caracteres, descrições até 2.000 e URLs HTTP(S) até 4.096.
+**Exportar** consulta o servidor e baixa o backup `ActivityBackup` versão 2 do perfil selecionado, com regras de recorrência e histórico de conclusões. **Importar** aceita as versões 1 e 2 e solicita confirmação antes de substituir atividades e histórico **somente desse perfil**, em uma transação. Registros de backups v1 são importados sem recorrência. O outro perfil não é afetado. Limites: 8 MB por requisição, 10.000 atividades e 100.000 ocorrências por importação. Títulos têm até 120 caracteres, descrições até 2.000 e URLs HTTP(S) até 4.096.
+
+Atividades concluídas ficam na seção recolhível **Concluído**. Uma recorrência mantém a mesma atividade e acrescenta cada conclusão ao histórico; a próxima data é calculada ao concluir e reconciliada ao carregar a lista. O cliente envia a data local do calendário, sem usar tarefas agendadas. Repetições mensais preservam o dia-base e usam o último dia disponível em meses mais curtos. Reabrir uma ocorrência ou mudar a frequência mantém os registros anteriores.
 
 ## Deploy no Coolify
 
@@ -120,7 +124,7 @@ npx playwright install chromium
 npm run test:ui
 ```
 
-Os testes unitários usam arquivos temporários isolados e cobrem validações, setup, Argon2id, CRUD, isolamento, concorrência, importação/exportação, migração local, rollback, integridade e idempotência SQLite. A integração inicia o build Next.js em uma porta livre, com credenciais aleatórias e banco temporário; verifica páginas privadas, CSRF, cookies de produção, troca de perfil, CRUD, importações, autorização, logout e expiração. Execute o build antes da integração e dos testes de navegador. O teste de navegador cobre login, erro de autenticação, seleção e edição de perfis, CRUD, filtros, exportação/restauração JSON, migração local, manutenção do formulário em falhas e envio pendente. Também salva capturas de desktop (1440 px) e celular (390 px) fora do repositório; `UI_ARTIFACT_DIR` permite escolher o diretório.
+Os testes unitários usam arquivos temporários isolados e cobrem validações, setup, Argon2id, CRUD, isolamento, concorrência, recorrência diária/semanal/mensal, edição, conclusão, reabertura, histórico, importação/exportação, migração local, rollback, integridade e idempotência SQLite. A integração inicia o build Next.js em uma porta livre, com credenciais aleatórias e banco temporário; verifica páginas privadas, CSRF, cookies de produção, troca de perfil, CRUD, recorrência, importações, autorização, logout e expiração. Execute o build antes da integração e dos testes de navegador. O teste de navegador cobre login, erro de autenticação, seleção e edição de perfis, CRUD, filtros, seção concluída recolhível, indicador e formulário de recorrência, reabertura, exportação/restauração JSON, migração local, manutenção do formulário em falhas e envio pendente. Também salva capturas de desktop (1440 px) e celular (390 px) fora do repositório; `UI_ARTIFACT_DIR` permite escolher o diretório.
 
 ## Arquivos da implementação
 
