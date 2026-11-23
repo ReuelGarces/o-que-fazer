@@ -19,10 +19,12 @@ import {
   X,
 } from "lucide-react";
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type FormEvent,
 } from "react";
 import {
@@ -86,6 +88,49 @@ const DEFAULT_STATUS_GROUPS: StatusGroupState = {
 
 function statusGroupPreferenceKey(profileId: string) {
   return `o-que-fazer:status-groups:v1:${profileId}`;
+}
+
+const STATUS_GROUP_PREFERENCES_EVENT = "o-que-fazer:status-group-preferences-change";
+const DEFAULT_STATUS_GROUPS_SNAPSHOT = JSON.stringify(DEFAULT_STATUS_GROUPS);
+
+function readStatusGroupPreferenceSnapshot(key: string) {
+  try {
+    return window.localStorage.getItem(key) ?? DEFAULT_STATUS_GROUPS_SNAPSHOT;
+  } catch {
+    return DEFAULT_STATUS_GROUPS_SNAPSHOT;
+  }
+}
+
+function subscribeStatusGroupPreferences(key: string, onChange: () => void) {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === key || event.key === null) onChange();
+  };
+  const onSameTabChange = (event: Event) => {
+    if ((event as CustomEvent<{ key: string }>).detail?.key === key) onChange();
+  };
+
+  window.addEventListener("storage", onStorage);
+  window.addEventListener(STATUS_GROUP_PREFERENCES_EVENT, onSameTabChange);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener(STATUS_GROUP_PREFERENCES_EVENT, onSameTabChange);
+  };
+}
+
+function parseStatusGroupPreferences(snapshot: string): StatusGroupState {
+  const preferences = { ...DEFAULT_STATUS_GROUPS };
+  try {
+    const parsed: unknown = JSON.parse(snapshot);
+    if (typeof parsed === "object" && parsed !== null) {
+      for (const group of STATUS_GROUPS) {
+        const value = (parsed as Record<string, unknown>)[group.id];
+        if (typeof value === "boolean") preferences[group.id] = value;
+      }
+    }
+  } catch {
+    // Keep the defaults if the stored value is invalid.
+  }
+  return preferences;
 }
 
 function ActivityDialog({
@@ -342,6 +387,10 @@ function ActivityStat({
 }
 
 export function ActivitiesApp({ profile }: { profile: Profile }) {
+  return <ActivitiesAppContent key={profile.id} profile={profile} />;
+}
+
+function ActivitiesAppContent({ profile }: { profile: Profile }) {
   const router = useRouter();
   const revisionRef = useRef(0);
   const busyRef = useRef(false);
@@ -354,8 +403,33 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("Todas");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("Todos");
-  const [groupDefaults, setGroupDefaults] = useState<StatusGroupState>({ ...DEFAULT_STATUS_GROUPS });
-  const [openGroups, setOpenGroups] = useState<StatusGroupState>({ ...DEFAULT_STATUS_GROUPS });
+  const groupPreferenceKey = statusGroupPreferenceKey(profile.id);
+  const subscribeToGroupPreferences = useCallback(
+    (onChange: () => void) => subscribeStatusGroupPreferences(groupPreferenceKey, onChange),
+    [groupPreferenceKey],
+  );
+  const getGroupPreferencesSnapshot = useCallback(
+    () => readStatusGroupPreferenceSnapshot(groupPreferenceKey),
+    [groupPreferenceKey],
+  );
+  const groupPreferencesSnapshot = useSyncExternalStore(
+    subscribeToGroupPreferences,
+    getGroupPreferencesSnapshot,
+    () => DEFAULT_STATUS_GROUPS_SNAPSHOT,
+  );
+  const storedGroupDefaults = useMemo(
+    () => parseStatusGroupPreferences(groupPreferencesSnapshot),
+    [groupPreferencesSnapshot],
+  );
+  const [optimisticGroupDefaults, setOptimisticGroupDefaults] = useState<{
+    sourceSnapshot: string;
+    values: StatusGroupState;
+  } | null>(null);
+  const groupDefaults = optimisticGroupDefaults?.sourceSnapshot === groupPreferencesSnapshot
+    ? optimisticGroupDefaults.values
+    : storedGroupDefaults;
+  const [openGroupOverrides, setOpenGroupOverrides] = useState<Partial<StatusGroupState>>({});
+  const openGroups = { ...groupDefaults, ...openGroupOverrides };
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Activity | null>(null);
   const [dialogActivity, setDialogActivity] = useState<Activity | null | undefined>();
@@ -364,26 +438,6 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
   function showNotice(message: string, tone: CalloutTone = "success") {
     setNotice({ message, tone });
   }
-
-  useEffect(() => {
-    const preferences = { ...DEFAULT_STATUS_GROUPS };
-    try {
-      const saved = window.localStorage.getItem(statusGroupPreferenceKey(profile.id));
-      if (saved) {
-        const parsed: unknown = JSON.parse(saved);
-        if (typeof parsed === "object" && parsed !== null) {
-          for (const group of STATUS_GROUPS) {
-            const value = (parsed as Record<string, unknown>)[group.id];
-            if (typeof value === "boolean") preferences[group.id] = value;
-          }
-        }
-      }
-    } catch {
-      // Keep the defaults when browser storage is unavailable.
-    }
-    setGroupDefaults(preferences);
-    setOpenGroups(preferences);
-  }, [profile.id]);
 
   useEffect(() => {
     let mounted = true;
@@ -451,7 +505,7 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
   function chooseStatusFilter(value: StatusFilter) {
     setStatusFilter(value);
     const group = STATUS_GROUPS.find((item) => item.status === value);
-    if (group) setOpenGroups((current) => ({ ...current, [group.id]: true }));
+    if (group) setOpenGroupOverrides((current) => ({ ...current, [group.id]: true }));
   }
 
   function toggleStatusFilter(value: ActivityStatus) {
@@ -488,17 +542,18 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
         ...(activity.completionId ? { completionId: activity.completionId } : {}),
       });
       const destination = STATUS_GROUPS.find((group) => group.status === status);
-      if (destination) setOpenGroups((current) => ({ ...current, [destination.id]: true }));
+      if (destination) setOpenGroupOverrides((current) => ({ ...current, [destination.id]: true }));
       showNotice("Status atualizado.");
     }
     catch (cause) { showNotice(cause instanceof Error ? cause.message : "Não foi possível atualizar o status.", "danger"); }
   }
   function updateGroupDefault(groupId: StatusGroupId, openByDefault: boolean) {
     const next = { ...groupDefaults, [groupId]: openByDefault };
-    setGroupDefaults(next);
-    setOpenGroups((current) => ({ ...current, [groupId]: openByDefault }));
+    setOptimisticGroupDefaults({ sourceSnapshot: groupPreferencesSnapshot, values: next });
+    setOpenGroupOverrides((current) => ({ ...current, [groupId]: openByDefault }));
     try {
-      window.localStorage.setItem(statusGroupPreferenceKey(profile.id), JSON.stringify(next));
+      window.localStorage.setItem(groupPreferenceKey, JSON.stringify(next));
+      window.dispatchEvent(new CustomEvent(STATUS_GROUP_PREFERENCES_EVENT, { detail: { key: groupPreferenceKey } }));
     } catch {
       showNotice("Não foi possível salvar a preferência neste navegador.", "info");
     }
@@ -727,7 +782,7 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
                         key={group.id}
                         onToggle={(event) => {
                           const isOpen = event.currentTarget.open;
-                          setOpenGroups((current) => current[group.id] === isOpen
+                          setOpenGroupOverrides((current) => current[group.id] === isOpen
                             ? current
                             : { ...current, [group.id]: isOpen },
                           );
