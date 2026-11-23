@@ -7,8 +7,8 @@ import {
   uniqueIndex,
   primaryKey,
   check,
+  foreignKey,
 } from "drizzle-orm/sqlite-core";
-import type { ActivityWeekday } from "../activities";
 
 export const accounts = sqliteTable("accounts", {
   id: text("id").primaryKey(),
@@ -58,18 +58,14 @@ export const activities = sqliteTable(
     }).notNull(),
     imageUrl: text("image_url").notNull(),
     linkUrl: text("link_url").notNull(),
-    isRepeating: integer("is_repeating", { mode: "boolean" })
-      .notNull()
-      .default(false),
-    repeatInterval: text("repeat_interval", {
-      enum: ["Daily", "Weekly", "Monthly"],
-    }),
-    repeatDays: text("repeat_days", { mode: "json" })
-      .$type<ActivityWeekday[]>()
-      .notNull()
-      .default(sql`'[]'`),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
+    recurrence: text("recurrence", {
+      enum: ["none", "daily", "weekly", "monthly", "custom"],
+    }).notNull().default("none"),
+    recurrenceInterval: integer("recurrence_interval"),
+    nextOccurrenceOn: text("next_occurrence_on"),
+    recurrenceAnchorDay: integer("recurrence_anchor_day"),
   },
   (t) => [
     primaryKey({ columns: [t.profileId, t.id] }),
@@ -85,10 +81,27 @@ export const activities = sqliteTable(
       "activity_status",
       sql`${t.status} in ('Quero fazer','Em andamento','Concluído')`,
     ),
-    check(
-      "activity_repeat",
-      sql`(${t.isRepeating} = 0 and ${t.repeatInterval} is null and ${t.repeatDays} = '[]') or (${t.isRepeating} = 1 and ${t.repeatInterval} in ('Daily','Weekly','Monthly') and (${t.repeatInterval} = 'Weekly' or ${t.repeatDays} = '[]'))`,
-    ),
+  ],
+);
+export const activityCompletions = sqliteTable(
+  "activity_completions",
+  {
+    id: text("id").notNull(),
+    profileId: text("profile_id").notNull(),
+    activityId: text("activity_id").notNull(),
+    completedOn: text("completed_on").notNull(),
+    completedAt: text("completed_at").notNull(),
+    reopenedAt: text("reopened_at"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.profileId, t.id] }),
+    foreignKey({
+      columns: [t.profileId, t.activityId],
+      foreignColumns: [activities.profileId, activities.id],
+    }).onDelete("cascade"),
+    index("activity_completions_profile_activity").on(t.profileId, t.activityId),
+    index("activity_completions_profile_completed").on(t.profileId, t.completedOn),
+    check("completion_date_format", sql`length(${t.completedOn}) = 10`),
   ],
 );
 export const sessions = sqliteTable(
@@ -116,10 +129,12 @@ export const profileRelations = relations(profiles, ({ one, many }) => ({
     references: [accounts.id],
   }),
   activities: many(activities),
+  activityCompletions: many(activityCompletions),
 }));
-export const activityRelations = relations(activities, ({ one }) => ({
+export const activityRelations = relations(activities, ({ one, many }) => ({
   profile: one(profiles, {
     fields: [activities.profileId],
     references: [profiles.id],
   }),
+  completions: many(activityCompletions),
 }));

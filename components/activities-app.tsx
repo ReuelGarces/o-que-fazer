@@ -28,13 +28,14 @@ import {
 import {
   ACTIVITY_CATEGORIES,
   ACTIVITY_STATUSES,
-  ACTIVITY_WEEKDAYS,
   type Activity,
+  type ActivityCard,
   type ActivityCategory,
+  type ActivityCompletion,
   type ActivityInput,
-  type ActivityRepeatInterval,
   type ActivityStatus,
-  type ActivityWeekday,
+  type RecurrenceFrequency,
+  currentLocalDate,
 } from "@/lib/activities";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -62,6 +63,11 @@ import {
 
 type CategoryFilter = ActivityCategory | "Todas";
 type StatusFilter = ActivityStatus | "Todos";
+type ActivitySnapshot = {
+  revision: number;
+  activities: Activity[];
+  completions: ActivityCompletion[];
+};
 
 const STATUS_GROUPS = [
   { id: "inProgress", status: "Em andamento", label: "Em andamento", icon: Clock3 },
@@ -99,11 +105,11 @@ function ActivityDialog({
   const [description, setDescription] = useState(activity?.description ?? "");
   const [category, setCategory] = useState<ActivityCategory>(activity?.category ?? "Outros");
   const [status, setStatus] = useState<ActivityStatus>(activity?.status ?? "Quero fazer");
-  const [isRepeating, setIsRepeating] = useState(activity?.isRepeating ?? false);
-  const [repeatInterval, setRepeatInterval] = useState<ActivityRepeatInterval>(
-    activity?.repeatInterval ?? "Weekly",
+  const [isRepeating, setIsRepeating] = useState(activity ? activity.recurrence !== "none" : false);
+  const [repeatInterval, setRepeatInterval] = useState<Exclude<RecurrenceFrequency, "none">>(
+    activity?.recurrence === "none" ? "weekly" : activity?.recurrence ?? "weekly",
   );
-  const [repeatDays, setRepeatDays] = useState<ActivityWeekday[]>(activity?.repeatDays ?? []);
+  const [recurrenceInterval, setRecurrenceInterval] = useState(activity?.recurrenceInterval ?? 1);
   const [imageUrl, setImageUrl] = useState(activity?.imageUrl ?? "");
   const [linkUrl, setLinkUrl] = useState(activity?.linkUrl ?? "");
   const [detailsOpen, setDetailsOpen] = useState(Boolean(
@@ -121,10 +127,6 @@ function ActivityDialog({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (savingRef.current) return;
-    if (isRepeating && repeatInterval === "Weekly" && repeatDays.length === 0) {
-      setError("Escolha pelo menos um dia da semana para repetir a atividade.");
-      return;
-    }
     savingRef.current = true; setSaving(true);
     setError("");
     try {
@@ -135,9 +137,8 @@ function ActivityDialog({
         status,
         imageUrl,
         linkUrl,
-        isRepeating,
-        repeatInterval: isRepeating ? repeatInterval : null,
-        repeatDays: isRepeating && repeatInterval === "Weekly" ? repeatDays : [],
+        recurrence: isRepeating ? repeatInterval : "none",
+        recurrenceInterval: isRepeating && repeatInterval === "custom" ? recurrenceInterval : null,
       });
       dialogRef.current?.close();
     } catch (cause) {
@@ -219,19 +220,11 @@ function ActivityDialog({
           </label>
 
           <Scheduler
-            daysOfWeek={[...ACTIVITY_WEEKDAYS]}
             isRepeating={isRepeating}
+            recurrenceInterval={recurrenceInterval}
             repeatInterval={repeatInterval}
-            selectedDays={repeatDays}
-            setRepeatInterval={(interval) => {
-              setRepeatInterval(interval as ActivityRepeatInterval);
-              if (interval !== "Weekly") setRepeatDays([]);
-            }}
-            setSelectedDays={(days) => {
-              setRepeatDays(days.filter((day): day is ActivityWeekday =>
-                ACTIVITY_WEEKDAYS.includes(day as ActivityWeekday),
-              ));
-            }}
+            setRecurrenceInterval={setRecurrenceInterval}
+            setRepeatInterval={setRepeatInterval}
             toggleRepeating={() => setIsRepeating((current) => !current)}
           />
 
@@ -281,6 +274,7 @@ function ActivityDialog({
                   value={linkUrl}
                 />
               </label>
+
             </div>
           </details>
 
@@ -353,6 +347,7 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
   const busyRef = useRef(false);
   const [busy, setBusy] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [completions, setCompletions] = useState<ActivityCompletion[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [storageError, setStorageError] = useState("");
   const [notice, setNotice] = useState<{ message: string; tone: CalloutTone } | null>(null);
@@ -384,7 +379,7 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
         }
       }
     } catch {
-      // Keep the product defaults when this browser blocks local storage.
+      // Keep the defaults when browser storage is unavailable.
     }
     setGroupDefaults(preferences);
     setOpenGroups(preferences);
@@ -392,27 +387,60 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
 
   useEffect(() => {
     let mounted = true;
-    api<{ activities: Activity[]; revision: number }>("activities", { headers: { "x-profile-id": profile.id } })
-      .then(result => { if (mounted) { setActivities(result.activities); revisionRef.current = result.revision; } })
+    api<ActivitySnapshot>("activities", { headers: { "x-profile-id": profile.id, "x-local-date": currentLocalDate() } })
+      .then(result => { if (mounted) { setActivities(result.activities); setCompletions(result.completions); revisionRef.current = result.revision; } })
       .catch(error => { if (mounted) setStorageError(error.message); })
       .finally(() => { if (mounted) setLoaded(true); });
     return () => { mounted = false; };
   }, [profile.id]);
 
-  const filteredActivities = useMemo(() => {
+  const { filteredActivities, completedCards } = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("pt-BR");
-    return activities.filter((activity) => {
+    const matchesTextAndCategory = (activity: Activity) => {
       const matchesSearch = !term || activity.title.toLocaleLowerCase("pt-BR").includes(term);
       const matchesCategory = categoryFilter === "Todas" || activity.category === categoryFilter;
-      const matchesStatus = statusFilter === "Todos" || activity.status === statusFilter;
-      return matchesSearch && matchesCategory && matchesStatus;
-    }).sort((left, right) => Number(left.status === "Concluído") - Number(right.status === "Concluído"));
-  }, [activities, categoryFilter, search, statusFilter]);
+      return matchesSearch && matchesCategory;
+    };
+    const completionIds = new Set(completions.map((completion) => completion.activityId));
+    const activityById = new Map(activities.map((activity) => [activity.id, activity]));
+    const completed: ActivityCard[] = [
+      ...completions.flatMap((completion) => {
+        const activity = activityById.get(completion.activityId);
+        if (!activity) return [];
+        return [{
+          ...activity,
+          status: "Concluído" as const,
+          cardKey: `completion:${completion.id}`,
+          completionId: completion.id,
+          completedOn: completion.completedOn,
+          isHistory: true,
+          canReopen: activity.status === "Concluído",
+        }];
+      }),
+      ...activities
+        .filter((activity) => activity.status === "Concluído" && !completionIds.has(activity.id))
+        .map((activity) => ({ ...activity, canReopen: true })),
+    ].filter((activity) => matchesTextAndCategory(activity));
+
+    const active = activities.filter((activity) =>
+      activity.status !== "Concluído" &&
+      (statusFilter === "Todos" || activity.status === statusFilter) &&
+      matchesTextAndCategory(activity),
+    );
+    const filteredCompleted = statusFilter === "Todos" || statusFilter === "Concluído"
+      ? completed
+      : [];
+    return { filteredActivities: active, completedCards: filteredCompleted };
+  }, [activities, categoryFilter, completions, search, statusFilter]);
 
   const visibleStatusGroups = useMemo(() => STATUS_GROUPS.map((group) => ({
     ...group,
-    activities: filteredActivities.filter((activity) => activity.status === group.status),
-  })).filter((group) => group.activities.length > 0), [filteredActivities]);
+    activities: (group.id === "complete"
+      ? completedCards
+      : filteredActivities.filter((activity) => activity.status === group.status)) as ActivityCard[],
+  })).filter((group) =>
+    group.activities.length > 0 || (group.id === "complete" && statusFilter === "Concluído"),
+  ), [completedCards, filteredActivities, statusFilter]);
 
   const counts = useMemo(() => ({
     planned: activities.filter((activity) => activity.status === "Quero fazer").length,
@@ -420,39 +448,51 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
     complete: activities.filter((activity) => activity.status === "Concluído").length,
   }), [activities]);
 
+  function chooseStatusFilter(value: StatusFilter) {
+    setStatusFilter(value);
+    const group = STATUS_GROUPS.find((item) => item.status === value);
+    if (group) setOpenGroups((current) => ({ ...current, [group.id]: true }));
+  }
+
+  function toggleStatusFilter(value: ActivityStatus) {
+    chooseStatusFilter(statusFilter === value ? "Todos" : value);
+  }
+
   async function refreshList() {
     if (busyRef.current) return;
     busyRef.current = true; setBusy(true);
     try {
-      const result = await api<{ activities: Activity[]; revision: number }>("activities", { headers: { "x-profile-id": profile.id } });
-      revisionRef.current = result.revision; setActivities(result.activities); setStorageError("");
+      const result = await api<ActivitySnapshot>("activities", { headers: { "x-profile-id": profile.id, "x-local-date": currentLocalDate() } });
+      revisionRef.current = result.revision; setActivities(result.activities); setCompletions(result.completions); setStorageError("");
     } finally { busyRef.current = false; setBusy(false); }
   }
   async function write(path: string, method: string, value?: unknown) {
     if (busyRef.current) throw new Error("Aguarde a operação atual terminar.");
     busyRef.current = true; setBusy(true);
     try {
-      const result = await api<{ activities: Activity[]; revision: number; imported: number; skipped: number }>(path, {
-        method, headers: { "x-profile-id": profile.id, "if-match": String(revisionRef.current) },
+      const result = await api<ActivitySnapshot & { imported: number; skipped: number }>(path, {
+        method, headers: { "x-profile-id": profile.id, "x-local-date": currentLocalDate(), "if-match": String(revisionRef.current) },
         body: value === undefined ? undefined : JSON.stringify(value),
       });
-      revisionRef.current = result.revision; setActivities(result.activities); setStorageError(""); return result;
+      revisionRef.current = result.revision; setActivities(result.activities); setCompletions(result.completions); setStorageError(""); return result;
     } finally { busyRef.current = false; setBusy(false); }
   }
   async function saveOne(input: ActivityInput) {
     await write(dialogActivity ? `activities/${encodeURIComponent(dialogActivity.id)}` : "activities", dialogActivity ? "PATCH" : "POST", input);
     showNotice(dialogActivity ? "Atividade atualizada." : "Atividade adicionada à sua lista.");
   }
-  async function changeStatus(id: string, status: ActivityStatus) {
+  async function changeStatus(activity: ActivityCard, status: ActivityStatus) {
     try {
-      await write(`activities/${encodeURIComponent(id)}`, "PATCH", { status });
+      await write(`activities/${encodeURIComponent(activity.id)}`, "PATCH", {
+        status,
+        ...(activity.completionId ? { completionId: activity.completionId } : {}),
+      });
       const destination = STATUS_GROUPS.find((group) => group.status === status);
       if (destination) setOpenGroups((current) => ({ ...current, [destination.id]: true }));
       showNotice("Status atualizado.");
     }
     catch (cause) { showNotice(cause instanceof Error ? cause.message : "Não foi possível atualizar o status.", "danger"); }
   }
-
   function updateGroupDefault(groupId: StatusGroupId, openByDefault: boolean) {
     const next = { ...groupDefaults, [groupId]: openByDefault };
     setGroupDefaults(next);
@@ -484,6 +524,8 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
 
   const activeFilters = categoryFilter !== "Todas" || statusFilter !== "Todos" || search.trim() !== "";
   const hasActivities = loaded && !storageError && activities.length > 0;
+  const filteredCount = filteredActivities.length + completedCards.length;
+  const showStatusGroups = filteredCount > 0 || statusFilter === "Concluído";
   const NoticeIcon = notice?.tone === "danger" ? AlertCircle : notice?.tone === "info" ? Info : CheckCircle2;
   return (
     <main className="app-shell">
@@ -535,7 +577,7 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
             active={statusFilter === "Quero fazer"}
             icon={CircleHelp}
             label="Quero fazer"
-            onClick={() => setStatusFilter((current) => current === "Quero fazer" ? "Todos" : "Quero fazer")}
+            onClick={() => toggleStatusFilter("Quero fazer")}
             tone="sand"
             value={counts.planned}
           />
@@ -543,7 +585,7 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
             active={statusFilter === "Em andamento"}
             icon={Clock3}
             label="Em andamento"
-            onClick={() => setStatusFilter((current) => current === "Em andamento" ? "Todos" : "Em andamento")}
+            onClick={() => toggleStatusFilter("Em andamento")}
             tone="blue"
             value={counts.inProgress}
           />
@@ -551,7 +593,7 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
             active={statusFilter === "Concluído"}
             icon={CheckCircle2}
             label="Concluídas"
-            onClick={() => setStatusFilter((current) => current === "Concluído" ? "Todos" : "Concluído")}
+            onClick={() => toggleStatusFilter("Concluído")}
             tone="green"
             value={counts.complete}
           />
@@ -579,8 +621,8 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
               <p>Ideias para viver, aprender e realizar.</p>
             </div>
             {hasActivities && (
-              <span aria-label={`${filteredActivities.length} atividades`} className="heading-count">
-                {filteredActivities.length}
+              <span aria-label={`${filteredCount} atividades`} className="heading-count">
+                {filteredCount}
               </span>
             )}
             {hasActivities && (
@@ -615,7 +657,7 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
                   <select
                     aria-label="Filtrar por status"
                     className="status-filter"
-                    onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+                    onChange={(event) => chooseStatusFilter(event.target.value as StatusFilter)}
                     value={statusFilter}
                   >
                     <option value="Todos">Todos os status</option>
@@ -674,7 +716,7 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
                   text="Tentar novamente"
                 />
               </div>
-            ) : filteredActivities.length > 0 ? (
+            ) : showStatusGroups ? (
               <>
                 <div aria-label="Atividades por status" className="activity-status-groups">
                   {visibleStatusGroups.map((group) => {
@@ -705,24 +747,36 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
                           <ChevronDown aria-hidden="true" className="activity-status-group__chevron" size={17} />
                         </summary>
                         <div className="activity-status-group__content">
-                          <ExpandingCards
-                            activities={group.activities}
-                            ariaLabel={`Atividades: ${group.label}`}
-                            expandedId={expandedId && group.activities.some((item) => item.id === expandedId) ? expandedId : null}
-                            onDelete={removeOne}
-                            onEdit={(activity) => setDialogActivity(activity)}
-                            onExpand={(id) => setExpandedId((current) => current === id ? null : id)}
-                            onStatusChange={changeStatus}
-                          />
+                          {group.activities.length > 0 ? (
+                            <ExpandingCards
+                              activities={group.activities}
+                              ariaLabel={`Atividades: ${group.label}`}
+                              expandedId={expandedId && group.activities.some((item) => (item.cardKey ?? item.id) === expandedId) ? expandedId : null}
+                              onDelete={removeOne}
+                              onEdit={(activity) => setDialogActivity(activities.find((item) => item.id === activity.id) ?? activity)}
+                              onExpand={(id) => setExpandedId((current) => current === id ? null : id)}
+                              onStatusChange={changeStatus}
+                            />
+                          ) : (
+                            <div className="empty-state empty-state--small">
+                              <span className="empty-icon"><Search aria-hidden="true" size={20} /></span>
+                              <div>
+                                <h3>Nenhuma ideia encontrada</h3>
+                                <p>Tente mudar os filtros ou a busca.</p>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </details>
                     );
                   })}
                 </div>
-                <div className="cards-footnote">
-                  <span><span className="footnote-dot" /> {activeFilters ? `${filteredActivities.length} ${filteredActivities.length === 1 ? "resultado" : "resultados"}` : `${activities.length} ${activities.length === 1 ? "ideia guardada" : "ideias guardadas"}`}</span>
-                  <span>Passe o cursor ou toque em um card para ver detalhes</span>
-                </div>
+                {filteredCount > 0 && (
+                  <div className="cards-footnote">
+                    <span><span className="footnote-dot" /> {activeFilters ? `${filteredCount} ${filteredCount === 1 ? "resultado" : "resultados"}` : `${activities.length} ${activities.length === 1 ? "ideia guardada" : "ideias guardadas"}`}</span>
+                    <span>Passe o cursor ou toque em um card para ver detalhes</span>
+                  </div>
+                )}
               </>
             ) : loaded && activities.length === 0 ? (
               <div className="empty-state">

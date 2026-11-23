@@ -1,25 +1,22 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import type { RecurrenceFrequency } from "@/lib/activities";
 
 interface ComponentProps {
   isRepeating: boolean;
   toggleRepeating: () => void;
-  repeatInterval: string;
-  setRepeatInterval: (interval: string) => void;
-  daysOfWeek: string[];
-  selectedDays: string[];
-  setSelectedDays: (days: string[]) => void;
+  repeatInterval: Exclude<RecurrenceFrequency, "none">;
+  setRepeatInterval: (interval: Exclude<RecurrenceFrequency, "none">) => void;
+  recurrenceInterval: number;
+  setRecurrenceInterval: (interval: number) => void;
 }
 
-const dayLabels: Record<string, string> = {
-  Mo: "Seg",
-  Tu: "Ter",
-  We: "Qua",
-  Th: "Qui",
-  Fr: "Sex",
-  Sa: "Sáb",
-  Su: "Dom",
+const frequencyLabels: Record<Exclude<RecurrenceFrequency, "none">, string> = {
+  daily: "Todos os dias",
+  weekly: "Toda semana",
+  monthly: "Todo mês",
+  custom: "Personalizado: a cada N dias",
 };
 
 export function Component({
@@ -27,18 +24,9 @@ export function Component({
   toggleRepeating,
   repeatInterval,
   setRepeatInterval,
-  daysOfWeek,
-  selectedDays,
-  setSelectedDays,
+  recurrenceInterval,
+  setRecurrenceInterval,
 }: ComponentProps) {
-  function toggleDay(day: string) {
-    setSelectedDays(
-      selectedDays.includes(day)
-        ? selectedDays.filter((selectedDay) => selectedDay !== day)
-        : [...selectedDays, day],
-    );
-  }
-
   return (
     <section aria-labelledby="activity-repeat-title" className="scheduler form-field--wide">
       <div className="scheduler__header">
@@ -64,36 +52,29 @@ export function Component({
           <select
             disabled={!isRepeating}
             id="activity-repeat-interval"
-            onChange={(event) => setRepeatInterval(event.target.value)}
+            onChange={(event) => setRepeatInterval(event.target.value as Exclude<RecurrenceFrequency, "none">)}
             value={repeatInterval}
           >
-            <option value="Daily">Todos os dias</option>
-            <option value="Weekly">Toda semana</option>
-            <option value="Monthly">Todo mês</option>
+            {Object.entries(frequencyLabels).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
           </select>
         </label>
 
-        {isRepeating && repeatInterval === "Weekly" && (
-          <fieldset className="scheduler__weekdays">
-            <legend>Repetir em</legend>
-            <div aria-label="Dias da semana" className="scheduler__day-list" role="group">
-              {daysOfWeek.map((day) => {
-                const selected = selectedDays.includes(day);
-                return (
-                  <button
-                    aria-pressed={selected}
-                    className={cn("scheduler__day", selected && "is-selected")}
-                    key={day}
-                    onClick={() => toggleDay(day)}
-                    type="button"
-                  >
-                    {dayLabels[day] ?? day}
-                  </button>
-                );
-              })}
-            </div>
-            <p>Escolha ao menos um dia para a repetição semanal.</p>
-          </fieldset>
+        {isRepeating && repeatInterval === "custom" && (
+          <label className="scheduler__frequency" htmlFor="activity-recurrence-interval">
+            <span>Intervalo em dias</span>
+            <input
+              id="activity-recurrence-interval"
+              max={3650}
+              min={1}
+              onChange={(event) => setRecurrenceInterval(Number(event.target.value))}
+              required
+              type="number"
+              value={recurrenceInterval}
+            />
+            <span className="field-hint">Escolha entre 1 e 3.650 dias.</span>
+          </label>
         )}
       </div>
     </section>

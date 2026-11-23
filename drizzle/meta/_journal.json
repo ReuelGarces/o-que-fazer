@@ -19,8 +19,8 @@
     {
       "idx": 2,
       "version": "6",
-      "when": 1795463295479,
-      "tag": "0002_add_activity_repetition",
+      "when": 1795441889242,
+      "tag": "0002_add-recurrence-history",
       "breakpoints": true
     }
   ]

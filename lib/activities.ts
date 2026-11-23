@@ -18,13 +18,17 @@ export const ACTIVITY_STATUSES = [
   "Concluído",
 ] as const;
 
-export const ACTIVITY_REPEAT_INTERVALS = ["Daily", "Weekly", "Monthly"] as const;
-export const ACTIVITY_WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] as const;
+export const RECURRENCE_FREQUENCIES = [
+  "none",
+  "daily",
+  "weekly",
+  "monthly",
+  "custom",
+] as const;
 
 export type ActivityCategory = (typeof ACTIVITY_CATEGORIES)[number];
 export type ActivityStatus = (typeof ACTIVITY_STATUSES)[number];
-export type ActivityRepeatInterval = (typeof ACTIVITY_REPEAT_INTERVALS)[number];
-export type ActivityWeekday = (typeof ACTIVITY_WEEKDAYS)[number];
+export type RecurrenceFrequency = (typeof RECURRENCE_FREQUENCIES)[number];
 
 export type Activity = {
   id: string;
@@ -34,11 +38,20 @@ export type Activity = {
   status: ActivityStatus;
   imageUrl: string;
   linkUrl: string;
-  isRepeating: boolean;
-  repeatInterval: ActivityRepeatInterval | null;
-  repeatDays: ActivityWeekday[];
   createdAt: string;
   updatedAt: string;
+  recurrence: RecurrenceFrequency;
+  recurrenceInterval: number | null;
+  nextOccurrenceOn: string | null;
+  recurrenceAnchorDay: number | null;
+};
+
+export type ActivityCard = Activity & {
+  cardKey?: string;
+  completionId?: string | null;
+  completedOn?: string | null;
+  isHistory?: boolean;
+  canReopen?: boolean;
 };
 
 export type ActivityInput = Pick<
@@ -49,15 +62,23 @@ export type ActivityInput = Pick<
   | "status"
   | "imageUrl"
   | "linkUrl"
-  | "isRepeating"
-  | "repeatInterval"
-  | "repeatDays"
+  | "recurrence"
+  | "recurrenceInterval"
 >;
 
+export type ActivityCompletion = {
+  id: string;
+  activityId: string;
+  completedOn: string;
+  completedAt: string;
+  reopenedAt: string | null;
+};
+
 export type ActivityBackup = {
-  version: 1;
+  version: 2;
   exportedAt: string;
   activities: Activity[];
+  completions: ActivityCompletion[];
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -70,6 +91,24 @@ function isIsoDate(value: unknown): value is string {
     !Number.isNaN(Date.parse(value)) &&
     value.includes("T")
   );
+}
+
+export function isDateOnly(value: unknown): value is string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
+export function currentLocalDate(now = new Date()): string {
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function validateOptionalUrl(value: unknown, fieldName: string): string {
@@ -91,6 +130,61 @@ function validateOptionalUrl(value: unknown, fieldName: string): string {
   }
 }
 
+function validateRecurrence(value: Record<string, unknown>) {
+  const recurrence = value.recurrence === undefined ? "none" : value.recurrence;
+  if (!RECURRENCE_FREQUENCIES.includes(recurrence as RecurrenceFrequency)) {
+    throw new ValidationError("A repetição da atividade é inválida.");
+  }
+
+  const recurrenceInterval = value.recurrenceInterval === undefined
+    ? null
+    : value.recurrenceInterval;
+  if (recurrence === "custom") {
+    if (
+      !Number.isSafeInteger(recurrenceInterval) ||
+      (recurrenceInterval as number) < 1 ||
+      (recurrenceInterval as number) > 3650
+    ) {
+      throw new ValidationError("Informe um intervalo entre 1 e 3.650 dias.");
+    }
+  } else if (recurrenceInterval !== null) {
+    throw new ValidationError("O intervalo personalizado só vale para repetição personalizada.");
+  }
+
+  const nextOccurrenceOn = value.nextOccurrenceOn === undefined
+    ? null
+    : value.nextOccurrenceOn;
+  if (nextOccurrenceOn !== null && !isDateOnly(nextOccurrenceOn)) {
+    throw new ValidationError("Uma atividade contém uma data de repetição inválida.");
+  }
+
+  const recurrenceAnchorDay = value.recurrenceAnchorDay === undefined
+    ? null
+    : value.recurrenceAnchorDay;
+  if (
+    recurrenceAnchorDay !== null &&
+    (!Number.isInteger(recurrenceAnchorDay) ||
+      (recurrenceAnchorDay as number) < 1 ||
+      (recurrenceAnchorDay as number) > 31)
+  ) {
+    throw new ValidationError("O dia-base da repetição mensal é inválido.");
+  }
+
+  if (recurrence !== "monthly" && recurrenceAnchorDay !== null) {
+    throw new ValidationError("O dia-base só vale para repetição mensal.");
+  }
+  if (recurrence === "none" && nextOccurrenceOn !== null) {
+    throw new ValidationError("Uma atividade sem repetição não pode ter próxima data.");
+  }
+
+  return {
+    recurrence: recurrence as RecurrenceFrequency,
+    recurrenceInterval: recurrenceInterval as number | null,
+    nextOccurrenceOn: nextOccurrenceOn as string | null,
+    recurrenceAnchorDay: recurrenceAnchorDay as number | null,
+  };
+}
+
 export function validateActivity(value: unknown): Activity {
   if (!isRecord(value)) {
     throw new ValidationError("Uma atividade do arquivo está em formato inválido.");
@@ -105,34 +199,6 @@ export function validateActivity(value: unknown): Activity {
   if (!ACTIVITY_STATUSES.includes(value.status as ActivityStatus)) {
     throw new ValidationError("Uma atividade contém um status inválido.");
   }
-  if (value.isRepeating !== undefined && typeof value.isRepeating !== "boolean") {
-    throw new ValidationError("A repetição da atividade está inválida.");
-  }
-  const isRepeating = value.isRepeating === true;
-  let repeatInterval: ActivityRepeatInterval | null = null;
-  let repeatDays: ActivityWeekday[] = [];
-  if (isRepeating) {
-    if (!ACTIVITY_REPEAT_INTERVALS.includes(value.repeatInterval as ActivityRepeatInterval)) {
-      throw new ValidationError("Escolha uma frequência de repetição válida.");
-    }
-    repeatInterval = value.repeatInterval as ActivityRepeatInterval;
-    if (repeatInterval === "Weekly") {
-      if (!Array.isArray(value.repeatDays)) {
-        throw new ValidationError("Escolha os dias da semana para a repetição.");
-      }
-      const selectedDays = new Set<ActivityWeekday>();
-      for (const day of value.repeatDays) {
-        if (!ACTIVITY_WEEKDAYS.includes(day as ActivityWeekday)) {
-          throw new ValidationError("Uma atividade contém um dia da semana inválido.");
-        }
-        selectedDays.add(day as ActivityWeekday);
-      }
-      repeatDays = ACTIVITY_WEEKDAYS.filter((day) => selectedDays.has(day));
-      if (repeatDays.length === 0) {
-        throw new ValidationError("Escolha pelo menos um dia da semana.");
-      }
-    }
-  }
   if (typeof value.description !== "string" || value.description.length > 2000) {
     throw new ValidationError("A descrição da atividade está inválida.");
   }
@@ -143,6 +209,11 @@ export function validateActivity(value: unknown): Activity {
     throw new ValidationError("Uma atividade contém uma data inválida.");
   }
 
+  const recurrence = validateRecurrence(value);
+  if (value.status !== "Concluído" && recurrence.nextOccurrenceOn !== null) {
+    throw new ValidationError("Uma atividade ativa não pode ter uma próxima data agendada.");
+  }
+
   return {
     id: value.id,
     title,
@@ -151,11 +222,9 @@ export function validateActivity(value: unknown): Activity {
     status: value.status as ActivityStatus,
     imageUrl: validateOptionalUrl(value.imageUrl, "URL da imagem"),
     linkUrl: validateOptionalUrl(value.linkUrl, "link externo"),
-    isRepeating,
-    repeatInterval,
-    repeatDays,
     createdAt: value.createdAt,
     updatedAt: value.updatedAt,
+    ...recurrence,
   };
 }
 
@@ -176,16 +245,151 @@ export function validateActivityRecords(value: unknown): Activity[] {
   return activities;
 }
 
+export function validateActivityInput(value: unknown): ActivityInput {
+  if (!isRecord(value)) throw new ValidationError("Atividade inválida.");
+  const now = new Date().toISOString();
+  const record = validateActivity({
+    ...value,
+    id: "input",
+    createdAt: now,
+    updatedAt: now,
+    nextOccurrenceOn: null,
+    recurrenceAnchorDay: null,
+  });
+  return {
+    title: record.title,
+    description: record.description.trim(),
+    category: record.category,
+    status: record.status,
+    imageUrl: record.imageUrl,
+    linkUrl: record.linkUrl,
+    recurrence: record.recurrence,
+    recurrenceInterval: record.recurrenceInterval,
+  };
+}
+
+export function validateActivityCompletions(value: unknown): ActivityCompletion[] {
+  if (!Array.isArray(value)) {
+    throw new ValidationError("O histórico de conclusões está inválido.");
+  }
+  if (value.length > 100000) {
+    throw new ValidationError("O limite é de 100.000 ocorrências por importação.");
+  }
+
+  const ids = new Set<string>();
+  return value.map((entry) => {
+    if (
+      !isRecord(entry) ||
+      typeof entry.id !== "string" ||
+      !entry.id.trim() ||
+      entry.id.length > 200 ||
+      typeof entry.activityId !== "string" ||
+      !entry.activityId.trim() ||
+      !isDateOnly(entry.completedOn) ||
+      !isIsoDate(entry.completedAt) ||
+      (entry.reopenedAt !== null && !isIsoDate(entry.reopenedAt))
+    ) {
+      throw new ValidationError("Uma ocorrência concluída contém dados inválidos.");
+    }
+    if (ids.has(entry.id)) {
+      throw new ValidationError("O histórico contém ocorrências duplicadas.");
+    }
+    ids.add(entry.id);
+    return {
+      id: entry.id,
+      activityId: entry.activityId,
+      completedOn: entry.completedOn,
+      completedAt: entry.completedAt,
+      reopenedAt: entry.reopenedAt as string | null,
+    };
+  });
+}
+
 export function validateBackup(value: unknown): ActivityBackup {
-  if (!isRecord(value) || value.version !== 1 || !isIsoDate(value.exportedAt)) {
+  if (
+    !isRecord(value) ||
+    (value.version !== 1 && value.version !== 2) ||
+    !isIsoDate(value.exportedAt)
+  ) {
     throw new ValidationError("Este arquivo não é um backup compatível do O Que Quero Fazer.");
   }
 
+  const activities = validateActivityRecords(value.activities);
+  const completions = value.version === 1
+    ? []
+    : validateActivityCompletions(value.completions);
+  const activityIds = new Set(activities.map((activity) => activity.id));
+  if (completions.some((completion) => !activityIds.has(completion.activityId))) {
+    throw new ValidationError("O histórico referencia uma atividade que não está no backup.");
+  }
+
+  return { version: 2, exportedAt: value.exportedAt, activities, completions };
+}
+
+export function makeBackup(
+  activities: Activity[],
+  completions: ActivityCompletion[] = [],
+): ActivityBackup {
+  const validatedActivities = validateActivityRecords(activities);
+  const validatedCompletions = validateActivityCompletions(completions);
+  const activityIds = new Set(validatedActivities.map((activity) => activity.id));
+  if (validatedCompletions.some((completion) => !activityIds.has(completion.activityId))) {
+    throw new ValidationError("O histórico referencia uma atividade que não está no backup.");
+  }
   return {
-    version: 1,
-    exportedAt: value.exportedAt,
-    activities: validateActivityRecords(value.activities),
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    activities: validatedActivities,
+    completions: validatedCompletions,
   };
+}
+
+export function nextOccurrenceDate(
+  completedOn: string,
+  recurrence: RecurrenceFrequency,
+  recurrenceInterval: number | null,
+  recurrenceAnchorDay: number | null = null,
+): string | null {
+  if (!isDateOnly(completedOn) || recurrence === "none") return null;
+  const [year, month, day] = completedOn.split("-").map(Number);
+
+  if (recurrence === "daily" || recurrence === "weekly" || recurrence === "custom") {
+    const days = recurrence === "daily"
+      ? 1
+      : recurrence === "weekly"
+        ? 7
+        : recurrenceInterval;
+    if (!days || !Number.isSafeInteger(days) || days < 1) return null;
+    return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
+  }
+
+  const targetMonth = new Date(Date.UTC(year, month, 1));
+  const targetYear = targetMonth.getUTCFullYear();
+  const targetMonthIndex = targetMonth.getUTCMonth();
+  const daysInTargetMonth = new Date(Date.UTC(targetYear, targetMonthIndex + 1, 0)).getUTCDate();
+  const targetDay = Math.min(recurrenceAnchorDay ?? day, daysInTargetMonth);
+  return new Date(Date.UTC(targetYear, targetMonthIndex, targetDay)).toISOString().slice(0, 10);
+}
+
+export function recurrenceLabel(activity: Pick<Activity, "recurrence" | "recurrenceInterval">): string | null {
+  switch (activity.recurrence) {
+    case "daily": return "Diário";
+    case "weekly": return "Semanal";
+    case "monthly": return "Mensal";
+    case "custom": return `A cada ${activity.recurrenceInterval} dias`;
+    default: return null;
+  }
+}
+
+export function formatDateOnly(value: string): string {
+  if (!isDateOnly(value)) return value;
+  const [year, month, day] = value.split("-").map(Number);
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, month - 1, day, 12)));
 }
 
 function getStorage(): Storage | null {
@@ -207,23 +411,4 @@ export function readActivities(): Activity[] {
     throw new ValidationError("Os dados locais estão corrompidos. Faça uma cópia antes de continuar.");
   }
   return validateActivityRecords(parsed);
-}
-
-/** Validate untrusted input using the same contract as backup records. */
-export function validateActivityInput(value: unknown): ActivityInput {
-  if (!isRecord(value)) throw new ValidationError("Atividade inválida.");
-  const now = new Date().toISOString();
-  const record = validateActivity({ ...value, id: "input", createdAt: now, updatedAt: now });
-  return { title: record.title, description: record.description.trim(), category: record.category,
-    status: record.status, imageUrl: record.imageUrl, linkUrl: record.linkUrl,
-    isRepeating: record.isRepeating, repeatInterval: record.repeatInterval,
-    repeatDays: record.repeatDays };
-}
-
-export function makeBackup(activities: Activity[]): ActivityBackup {
-  return {
-    version: 1,
-    exportedAt: new Date().toISOString(),
-    activities: validateActivityRecords(activities),
-  };
 }

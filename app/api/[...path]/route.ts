@@ -13,7 +13,12 @@ import {
   snapshot,
 } from "@/lib/server/store";
 import { AppError } from "@/lib/server/errors";
-import { makeBackup, ValidationError } from "@/lib/activities";
+import {
+  currentLocalDate,
+  isDateOnly,
+  makeBackup,
+  ValidationError,
+} from "@/lib/activities";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -67,6 +72,10 @@ function json(value: unknown, status = 200) {
     },
   });
 }
+function localDate(request: Request) {
+  const supplied = request.headers.get("x-local-date");
+  return isDateOnly(supplied) ? supplied : currentLocalDate();
+}
 async function handle(
   request: Request,
   context: { params: Promise<{ path: string[] }> },
@@ -105,12 +114,13 @@ async function handle(
       return json({ profiles: listProfiles(current.accountId) });
     }
     const active = await selectedProfile(request.headers.get("x-profile-id"));
+    const today = localDate(request);
     if (method === "GET" && path === "activities")
-      return json(snapshot(active.accountId, active.profileId));
-    if (method === "GET" && path === "backup")
-      return json(
-        makeBackup(snapshot(active.accountId, active.profileId).activities),
-      );
+      return json(snapshot(active.accountId, active.profileId, today));
+    if (method === "GET" && path === "backup") {
+      const state = snapshot(active.accountId, active.profileId, today);
+      return json(makeBackup(state.activities, state.completions));
+    }
     const revisionHeader = request.headers.get("if-match");
     const revision =
       revisionHeader && /^\d+$/.test(revisionHeader)
@@ -127,6 +137,8 @@ async function handle(
           revision,
           "create",
           await body(request),
+          undefined,
+          today,
         ),
       );
     if (activityId && (method === "PATCH" || method === "DELETE"))
@@ -138,6 +150,7 @@ async function handle(
           method === "PATCH" ? "update" : "delete",
           method === "PATCH" ? await body(request) : null,
           activityId,
+          today,
         ),
       );
     if (path === "backup" && method === "PUT")
@@ -148,6 +161,8 @@ async function handle(
           revision,
           "replace",
           await body(request),
+          undefined,
+          today,
         ),
       );
     if (path === "import-local" && method === "POST") {
@@ -159,6 +174,8 @@ async function handle(
           revision,
           "merge",
           input.activities,
+          undefined,
+          today,
         ),
       );
     }
