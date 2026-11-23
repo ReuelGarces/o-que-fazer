@@ -15,12 +15,15 @@ import {
   MoreHorizontal,
   NotebookPen,
   Pencil,
+  Repeat2,
   Trash2,
 } from "lucide-react";
 import { useState, type CSSProperties } from "react";
 import {
   ACTIVITY_STATUSES,
-  type Activity,
+  formatDateOnly,
+  recurrenceLabel,
+  type ActivityCard,
   type ActivityCategory,
   type ActivityStatus,
 } from "@/lib/activities";
@@ -28,12 +31,12 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 type ExpandingCardsProps = {
-  activities: Activity[];
+  activities: ActivityCard[];
   expandedId: string | null;
   onExpand: (id: string) => void;
-  onEdit: (activity: Activity) => void;
-  onDelete: (activity: Activity, trigger: HTMLButtonElement) => void;
-  onStatusChange: (id: string, status: ActivityStatus) => void;
+  onEdit: (activity: ActivityCard) => void;
+  onDelete: (activity: ActivityCard, trigger: HTMLButtonElement) => void;
+  onStatusChange: (activity: ActivityCard, status: ActivityStatus) => void;
 };
 
 const categoryIcons: Record<ActivityCategory, typeof BookOpen> = {
@@ -90,11 +93,13 @@ export function ExpandingCards({
   return (
     <div className="expanding-cards" aria-label="Atividades cadastradas">
       {activities.map((activity) => {
+        const cardKey = activity.cardKey ?? activity.id;
         const isExpanded =
-          expandedId === activity.id || hoveredId === activity.id || focusedId === activity.id;
+          expandedId === cardKey || hoveredId === cardKey || focusedId === cardKey;
         const Icon = categoryIcons[activity.category];
         const status = statusPresentation(activity.status);
         const StatusIcon = status.icon;
+        const repetition = recurrenceLabel(activity);
         const imageUrl = activity.imageUrl || categoryImages[activity.category];
         const cardStyle = {
           "--card-flex": isExpanded ? 2.8 : 1,
@@ -110,42 +115,42 @@ export function ExpandingCards({
               isExpanded && "is-expanded",
               activity.status === "Concluído" && "is-completed",
             )}
-            key={activity.id}
+            key={cardKey}
             onBlurCapture={(event) => {
               const nextTarget = event.relatedTarget;
               if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) {
-                setFocusedId((current) => current === activity.id ? null : current);
+                setFocusedId((current) => current === cardKey ? null : current);
               }
             }}
             onFocusCapture={(event) => {
               if ((event.target as HTMLElement).matches(":focus-visible")) {
-                setFocusedId(activity.id);
+                setFocusedId(cardKey);
               }
             }}
             onMouseEnter={() => {
               if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-                setHoveredId(activity.id);
+                setHoveredId(cardKey);
               }
             }}
             onMouseLeave={() => {
-              setHoveredId((current) => current === activity.id ? null : current);
+              setHoveredId((current) => current === cardKey ? null : current);
             }}
             style={cardStyle}
           >
             <button
-              aria-controls={`activity-details-${activity.id}`}
+              aria-controls={`activity-details-${cardKey}`}
               aria-expanded={isExpanded}
-              aria-label={`${isExpanded ? "Recolher" : "Expandir"} ${activity.title}, ${activity.category}, status: ${activity.status}`}
+              aria-label={`${isExpanded ? "Recolher" : "Expandir"} ${activity.title}${activity.completedOn ? `, concluída em ${formatDateOnly(activity.completedOn)}` : ""}, ${activity.category}, status: ${activity.status}`}
             className={cn("expanding-card__cover", isExpanded && "is-expanded", "has-image")}
-              onClick={() => onExpand(activity.id)}
+              onClick={() => onExpand(cardKey)}
               onKeyDown={(event) => {
                 if (event.key === "ArrowDown") {
                   event.preventDefault();
-                  onExpand(activity.id);
+                  onExpand(cardKey);
                 }
                 if (event.key === "ArrowUp" && isExpanded) {
                   event.preventDefault();
-                  onExpand(activity.id);
+                  onExpand(cardKey);
                 }
               }}
               type="button"
@@ -173,6 +178,16 @@ export function ExpandingCards({
                     {activity.description || "Sem descrição por enquanto."}
                   </span>
                 )}
+                {repetition && (
+                  <span className="expanding-card__recurrence">
+                    <Repeat2 aria-hidden="true" size={13} /> {repetition}
+                  </span>
+                )}
+                {activity.completedOn && (
+                  <span className="expanding-card__completed-on">
+                    Concluída em {formatDateOnly(activity.completedOn)}
+                  </span>
+                )}
                 {!isExpanded && (
                   <span className="expanding-card__tap-hint">
                     <span>Ver detalhes</span>
@@ -185,15 +200,16 @@ export function ExpandingCards({
             <div
               className="expanding-card__toolbar"
               hidden={!isExpanded}
-              id={`activity-details-${activity.id}`}
+              id={`activity-details-${cardKey}`}
             >
                 <label className="status-select-wrap">
                   <span className="sr-only">Status de {activity.title}</span>
                   <select
                     aria-label={`Alterar status de ${activity.title}`}
                     className="status-select"
+                    disabled={activity.isHistory && !activity.canReopen}
                     onChange={(event) =>
-                      onStatusChange(activity.id, event.target.value as ActivityStatus)
+                      onStatusChange(activity, event.target.value as ActivityStatus)
                     }
                     value={activity.status}
                   >

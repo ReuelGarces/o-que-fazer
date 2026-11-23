@@ -28,9 +28,13 @@ import {
   ACTIVITY_CATEGORIES,
   ACTIVITY_STATUSES,
   type Activity,
+  type ActivityCard,
   type ActivityCategory,
+  type ActivityCompletion,
   type ActivityInput,
   type ActivityStatus,
+  type RecurrenceFrequency,
+  currentLocalDate,
 } from "@/lib/activities";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -57,6 +61,11 @@ import {
 
 type CategoryFilter = ActivityCategory | "Todas";
 type StatusFilter = ActivityStatus | "Todos";
+type ActivitySnapshot = {
+  revision: number;
+  activities: Activity[];
+  completions: ActivityCompletion[];
+};
 
 function ActivityDialog({
   activity,
@@ -75,6 +84,8 @@ function ActivityDialog({
   const [description, setDescription] = useState(activity?.description ?? "");
   const [category, setCategory] = useState<ActivityCategory>(activity?.category ?? "Outros");
   const [status, setStatus] = useState<ActivityStatus>(activity?.status ?? "Quero fazer");
+  const [recurrence, setRecurrence] = useState<RecurrenceFrequency>(activity?.recurrence ?? "none");
+  const [recurrenceInterval, setRecurrenceInterval] = useState(activity?.recurrenceInterval ?? 1);
   const [imageUrl, setImageUrl] = useState(activity?.imageUrl ?? "");
   const [linkUrl, setLinkUrl] = useState(activity?.linkUrl ?? "");
   const [detailsOpen, setDetailsOpen] = useState(Boolean(
@@ -95,7 +106,16 @@ function ActivityDialog({
     savingRef.current = true; setSaving(true);
     setError("");
     try {
-      await onSave({ title, description, category, status, imageUrl, linkUrl });
+      await onSave({
+        title,
+        description,
+        category,
+        status,
+        imageUrl,
+        linkUrl,
+        recurrence,
+        recurrenceInterval: recurrence === "custom" ? recurrenceInterval : null,
+      });
       dialogRef.current?.close();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível salvar a atividade.");
@@ -175,6 +195,36 @@ function ActivityDialog({
             </select>
           </label>
 
+          <label className="form-field" htmlFor="activity-recurrence">
+            <span>Repetição <span className="optional-mark">(opcional)</span></span>
+            <select
+              id="activity-recurrence"
+              onChange={(event) => setRecurrence(event.target.value as RecurrenceFrequency)}
+              value={recurrence}
+            >
+              <option value="none">Não repetir</option>
+              <option value="daily">Diariamente</option>
+              <option value="weekly">Semanalmente</option>
+              <option value="monthly">Mensalmente</option>
+              <option value="custom">Personalizado: a cada N dias</option>
+            </select>
+          </label>
+          {recurrence === "custom" && (
+            <label className="form-field" htmlFor="activity-recurrence-interval">
+              <span>Intervalo em dias</span>
+              <input
+                id="activity-recurrence-interval"
+                max={3650}
+                min={1}
+                onChange={(event) => setRecurrenceInterval(Number(event.target.value))}
+                required
+                type="number"
+                value={recurrenceInterval}
+              />
+              <span className="field-hint">Escolha entre 1 e 3.650 dias.</span>
+            </label>
+          )}
+
           <details
             className="optional-fields form-field--wide"
             onToggle={(event) => setDetailsOpen(event.currentTarget.open)}
@@ -221,6 +271,7 @@ function ActivityDialog({
                   value={linkUrl}
                 />
               </label>
+
             </div>
           </details>
 
@@ -293,6 +344,7 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
   const busyRef = useRef(false);
   const [busy, setBusy] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [completions, setCompletions] = useState<ActivityCompletion[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [storageError, setStorageError] = useState("");
   const [notice, setNotice] = useState<{ message: string; tone: CalloutTone } | null>(null);
@@ -300,6 +352,7 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("Todas");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("Todos");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [completedOpen, setCompletedOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Activity | null>(null);
   const [dialogActivity, setDialogActivity] = useState<Activity | null | undefined>();
   const deleteTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -310,22 +363,51 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
 
   useEffect(() => {
     let mounted = true;
-    api<{ activities: Activity[]; revision: number }>("activities", { headers: { "x-profile-id": profile.id } })
-      .then(result => { if (mounted) { setActivities(result.activities); revisionRef.current = result.revision; } })
+    api<ActivitySnapshot>("activities", { headers: { "x-profile-id": profile.id, "x-local-date": currentLocalDate() } })
+      .then(result => { if (mounted) { setActivities(result.activities); setCompletions(result.completions); revisionRef.current = result.revision; } })
       .catch(error => { if (mounted) setStorageError(error.message); })
       .finally(() => { if (mounted) setLoaded(true); });
     return () => { mounted = false; };
   }, [profile.id]);
 
-  const filteredActivities = useMemo(() => {
+  const { filteredActivities, completedCards } = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("pt-BR");
-    return activities.filter((activity) => {
+    const matchesTextAndCategory = (activity: Activity) => {
       const matchesSearch = !term || activity.title.toLocaleLowerCase("pt-BR").includes(term);
       const matchesCategory = categoryFilter === "Todas" || activity.category === categoryFilter;
-      const matchesStatus = statusFilter === "Todos" || activity.status === statusFilter;
-      return matchesSearch && matchesCategory && matchesStatus;
-    }).sort((left, right) => Number(left.status === "Concluído") - Number(right.status === "Concluído"));
-  }, [activities, categoryFilter, search, statusFilter]);
+      return matchesSearch && matchesCategory;
+    };
+    const completionIds = new Set(completions.map((completion) => completion.activityId));
+    const activityById = new Map(activities.map((activity) => [activity.id, activity]));
+    const completed: ActivityCard[] = [
+      ...completions.flatMap((completion) => {
+        const activity = activityById.get(completion.activityId);
+        if (!activity) return [];
+        return [{
+          ...activity,
+          status: "Concluído" as const,
+          cardKey: `completion:${completion.id}`,
+          completionId: completion.id,
+          completedOn: completion.completedOn,
+          isHistory: true,
+          canReopen: activity.status === "Concluído",
+        }];
+      }),
+      ...activities
+        .filter((activity) => activity.status === "Concluído" && !completionIds.has(activity.id))
+        .map((activity) => ({ ...activity, canReopen: true })),
+    ].filter((activity) => matchesTextAndCategory(activity));
+
+    const active = activities.filter((activity) =>
+      activity.status !== "Concluído" &&
+      (statusFilter === "Todos" || activity.status === statusFilter) &&
+      matchesTextAndCategory(activity),
+    );
+    const filteredCompleted = statusFilter === "Todos" || statusFilter === "Concluído"
+      ? completed
+      : [];
+    return { filteredActivities: active, completedCards: filteredCompleted };
+  }, [activities, categoryFilter, completions, search, statusFilter]);
 
   const counts = useMemo(() => ({
     planned: activities.filter((activity) => activity.status === "Quero fazer").length,
@@ -333,31 +415,46 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
     complete: activities.filter((activity) => activity.status === "Concluído").length,
   }), [activities]);
 
+  function chooseStatusFilter(value: StatusFilter) {
+    setStatusFilter(value);
+    if (value === "Concluído") setCompletedOpen(true);
+  }
+
+  function toggleStatusFilter(value: ActivityStatus) {
+    chooseStatusFilter(statusFilter === value ? "Todos" : value);
+  }
+
   async function refreshList() {
     if (busyRef.current) return;
     busyRef.current = true; setBusy(true);
     try {
-      const result = await api<{ activities: Activity[]; revision: number }>("activities", { headers: { "x-profile-id": profile.id } });
-      revisionRef.current = result.revision; setActivities(result.activities); setStorageError("");
+      const result = await api<ActivitySnapshot>("activities", { headers: { "x-profile-id": profile.id, "x-local-date": currentLocalDate() } });
+      revisionRef.current = result.revision; setActivities(result.activities); setCompletions(result.completions); setStorageError("");
     } finally { busyRef.current = false; setBusy(false); }
   }
   async function write(path: string, method: string, value?: unknown) {
     if (busyRef.current) throw new Error("Aguarde a operação atual terminar.");
     busyRef.current = true; setBusy(true);
     try {
-      const result = await api<{ activities: Activity[]; revision: number; imported: number; skipped: number }>(path, {
-        method, headers: { "x-profile-id": profile.id, "if-match": String(revisionRef.current) },
+      const result = await api<ActivitySnapshot & { imported: number; skipped: number }>(path, {
+        method, headers: { "x-profile-id": profile.id, "x-local-date": currentLocalDate(), "if-match": String(revisionRef.current) },
         body: value === undefined ? undefined : JSON.stringify(value),
       });
-      revisionRef.current = result.revision; setActivities(result.activities); setStorageError(""); return result;
+      revisionRef.current = result.revision; setActivities(result.activities); setCompletions(result.completions); setStorageError(""); return result;
     } finally { busyRef.current = false; setBusy(false); }
   }
   async function saveOne(input: ActivityInput) {
     await write(dialogActivity ? `activities/${encodeURIComponent(dialogActivity.id)}` : "activities", dialogActivity ? "PATCH" : "POST", input);
     showNotice(dialogActivity ? "Atividade atualizada." : "Atividade adicionada à sua lista.");
   }
-  async function changeStatus(id: string, status: ActivityStatus) {
-    try { await write(`activities/${encodeURIComponent(id)}`, "PATCH", { status }); showNotice("Status atualizado."); }
+  async function changeStatus(activity: ActivityCard, status: ActivityStatus) {
+    try {
+      await write(`activities/${encodeURIComponent(activity.id)}`, "PATCH", {
+        status,
+        ...(activity.completionId ? { completionId: activity.completionId } : {}),
+      });
+      showNotice("Status atualizado.");
+    }
     catch (cause) { showNotice(cause instanceof Error ? cause.message : "Não foi possível atualizar o status.", "danger"); }
   }
   function removeOne(activity: Activity, trigger: HTMLButtonElement) {
@@ -381,6 +478,9 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
 
   const activeFilters = categoryFilter !== "Todas" || statusFilter !== "Todos" || search.trim() !== "";
   const hasActivities = loaded && !storageError && activities.length > 0;
+  const filteredCount = filteredActivities.length + completedCards.length;
+  const showCompletedSection = statusFilter === "Concluído" ||
+    (statusFilter === "Todos" && completedCards.length > 0);
   const NoticeIcon = notice?.tone === "danger" ? AlertCircle : notice?.tone === "info" ? Info : CheckCircle2;
   return (
     <main className="app-shell">
@@ -432,7 +532,7 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
             active={statusFilter === "Quero fazer"}
             icon={CircleHelp}
             label="Quero fazer"
-            onClick={() => setStatusFilter((current) => current === "Quero fazer" ? "Todos" : "Quero fazer")}
+            onClick={() => toggleStatusFilter("Quero fazer")}
             tone="sand"
             value={counts.planned}
           />
@@ -440,7 +540,7 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
             active={statusFilter === "Em andamento"}
             icon={Clock3}
             label="Em andamento"
-            onClick={() => setStatusFilter((current) => current === "Em andamento" ? "Todos" : "Em andamento")}
+            onClick={() => toggleStatusFilter("Em andamento")}
             tone="blue"
             value={counts.inProgress}
           />
@@ -448,7 +548,7 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
             active={statusFilter === "Concluído"}
             icon={CheckCircle2}
             label="Concluídas"
-            onClick={() => setStatusFilter((current) => current === "Concluído" ? "Todos" : "Concluído")}
+            onClick={() => toggleStatusFilter("Concluído")}
             tone="green"
             value={counts.complete}
           />
@@ -476,8 +576,8 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
               <p>Ideias para viver, aprender e realizar.</p>
             </div>
             {hasActivities && (
-              <span aria-label={`${filteredActivities.length} atividades`} className="heading-count">
-                {filteredActivities.length}
+              <span aria-label={`${filteredCount} atividades`} className="heading-count">
+                {filteredCount}
               </span>
             )}
             {hasActivities && (
@@ -512,7 +612,7 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
                   <select
                     aria-label="Filtrar por status"
                     className="status-filter"
-                    onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+                    onChange={(event) => chooseStatusFilter(event.target.value as StatusFilter)}
                     value={statusFilter}
                   >
                     <option value="Todos">Todos os status</option>
@@ -540,20 +640,61 @@ export function ActivitiesApp({ profile }: { profile: Profile }) {
                   text="Tentar novamente"
                 />
               </div>
-            ) : filteredActivities.length > 0 ? (
+            ) : filteredCount > 0 || showCompletedSection ? (
               <>
-                <ExpandingCards
-                  activities={filteredActivities}
-                  expandedId={expandedId && filteredActivities.some((item) => item.id === expandedId) ? expandedId : null}
-                  onDelete={removeOne}
-                  onEdit={(activity) => setDialogActivity(activity)}
-                  onExpand={(id) => setExpandedId((current) => current === id ? null : id)}
-                  onStatusChange={changeStatus}
-                />
-                <div className="cards-footnote">
-                  <span><span className="footnote-dot" /> {activeFilters ? `${filteredActivities.length} ${filteredActivities.length === 1 ? "resultado" : "resultados"}` : `${activities.length} ${activities.length === 1 ? "ideia guardada" : "ideias guardadas"}`}</span>
-                  <span>Passe o cursor ou toque em um card para ver detalhes</span>
-                </div>
+                {filteredActivities.length > 0 && (
+                  <ExpandingCards
+                    activities={filteredActivities}
+                    expandedId={expandedId && filteredActivities.some((item) => item.id === expandedId) ? expandedId : null}
+                    onDelete={removeOne}
+                    onEdit={(activity) => setDialogActivity(activities.find((item) => item.id === activity.id) ?? activity)}
+                    onExpand={(id) => setExpandedId((current) => current === id ? null : id)}
+                    onStatusChange={changeStatus}
+                  />
+                )}
+                {showCompletedSection && (
+                  <section aria-labelledby="completed-heading" className="completed-section">
+                    <button
+                      aria-controls="completed-cards"
+                      aria-expanded={completedOpen}
+                      className="completed-section__toggle"
+                      onClick={() => setCompletedOpen((open) => !open)}
+                      type="button"
+                    >
+                      <span className="completed-section__title" id="completed-heading">Concluído</span>
+                      <span aria-label={`${completedCards.length} atividades concluídas`} className="completed-section__count">
+                        {completedCards.length}
+                      </span>
+                      <ChevronDown aria-hidden="true" className="completed-section__chevron" size={18} />
+                    </button>
+                    <div hidden={!completedOpen} id="completed-cards">
+                      {completedCards.length > 0 ? (
+                        <ExpandingCards
+                          activities={completedCards}
+                          expandedId={expandedId && completedCards.some((item) => (item.cardKey ?? item.id) === expandedId) ? expandedId : null}
+                          onDelete={removeOne}
+                          onEdit={(activity) => setDialogActivity(activities.find((item) => item.id === activity.id) ?? activity)}
+                          onExpand={(id) => setExpandedId((current) => current === id ? null : id)}
+                          onStatusChange={changeStatus}
+                        />
+                      ) : (
+                        <div className="empty-state empty-state--small">
+                          <span className="empty-icon"><Search aria-hidden="true" size={20} /></span>
+                          <div>
+                            <h3>Nenhuma ideia encontrada</h3>
+                            <p>Tente mudar os filtros ou a busca.</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                )}
+                {filteredCount > 0 && (
+                  <div className="cards-footnote">
+                    <span><span className="footnote-dot" /> {activeFilters ? `${filteredCount} ${filteredCount === 1 ? "resultado" : "resultados"}` : `${activities.length} ${activities.length === 1 ? "ideia guardada" : "ideias guardadas"}`}</span>
+                    <span>Passe o cursor ou toque em um card para ver detalhes</span>
+                  </div>
+                )}
               </>
             ) : loaded && activities.length === 0 ? (
               <div className="empty-state">

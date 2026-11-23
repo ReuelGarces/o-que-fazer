@@ -10,7 +10,7 @@ import { eq } from "drizzle-orm";
 import { database } from "../lib/server/database";
 import { setupAccount } from "../lib/server/credentials";
 import { accounts, profiles, sessions } from "../lib/server/schema";
-import type { Activity, ActivityBackup } from "../lib/activities";
+import { currentLocalDate, nextOccurrenceDate, type Activity, type ActivityBackup } from "../lib/activities";
 
 test(
   "Next.js em produção: autenticação, cookies, CSRF, CRUD, perfis e backups",
@@ -205,6 +205,8 @@ test(
             status: "Quero fazer",
             imageUrl: "",
             linkUrl: "https://example.org/",
+            recurrence: "daily",
+            recurrenceInterval: null,
           };
           assert.equal(
             (
@@ -231,14 +233,19 @@ test(
             ).status,
             409,
           );
+          const today = currentLocalDate();
           response = await request(`/api/activities/${activity.id}`, "PATCH", {
             status: "Concluído",
-          });
+          }, { "x-local-date": today });
           state = await response.json();
           revision = state.revision;
           assert.equal(state.activities[0].status, "Concluído");
+          assert.equal(state.activities[0].nextOccurrenceOn, nextOccurrenceDate(today, "daily", null));
+          assert.equal(state.completions.length, 1);
+          assert.equal(state.completions[0].completedOn, today);
           backup = await (await request("/api/backup")).json();
-          assert.equal(backup.version, 1);
+          assert.equal(backup.version, 2);
+          assert.equal(backup.completions.length, 1);
           assert.equal(
             (
               await request("/api/activities", "GET", undefined, {
@@ -261,7 +268,7 @@ test(
       await t.test(
         "importações são atômicas e apenas alteram o perfil selecionado",
         async () => {
-          let response = await request("/api/backup", "PUT", backup);
+          let response = await request("/api/backup", "PUT", backup, { "x-local-date": currentLocalDate() });
           assert.equal(response.status, 200);
           let state = await response.json();
           revision = state.revision;

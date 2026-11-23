@@ -15,6 +15,13 @@
       "when": 1795099508403,
       "tag": "0001_add-notes-category",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1795441889242,
+      "tag": "0002_add-recurrence-history",
+      "breakpoints": true
     }
   ]
 }
