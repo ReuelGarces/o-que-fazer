@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,8 +10,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt-BR" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="pt-BR" className="h-full antialiased" suppressHydrationWarning>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <Script id="theme-preference" strategy="beforeInteractive">
+          {`try { if (localStorage.getItem("o-que-fazer:theme:v1") === "dark") document.documentElement.dataset.theme = "dark"; } catch {}`}
+        </Script>
+      </body>
     </html>
   );
 }

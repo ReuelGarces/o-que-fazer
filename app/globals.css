@@ -3158,3 +3158,408 @@ summary:focus-visible {
 .profile-switch:hover { background: #6a5b9f; }
 .profile-switch[aria-disabled="true"] { opacity: .5; pointer-events: none; }
 @media (max-width: 700px) { .profile-control { gap: 6px; } .profile-switch { max-width: 150px; } .profile-switch-name { padding: 12px 10px; } }
+
+html[data-theme="dark"] .app-shell {
+  --background: #15131e;
+  --foreground: #f1edf9;
+  --card: #282436;
+  --card-foreground: #f1edf9;
+  --popover: #211e2d;
+  --popover-foreground: #f1edf9;
+  --primary: #aa98e8;
+  --primary-foreground: #211a33;
+  --secondary: #383149;
+  --secondary-foreground: #ece6ff;
+  --muted: #292634;
+  --muted-foreground: #bdb6ce;
+  --accent: #343247;
+  --accent-foreground: #f1edf9;
+  --destructive: #ff7890;
+  --destructive-foreground: #2e121a;
+  --border: #453e56;
+  --input: #514a63;
+  --ring: #c0afff;
+  --text-secondary: #c4bdd3;
+  --glass: rgb(34 31 49 / 78%);
+  --glass-border: rgb(146 132 187 / 28%);
+  --soft-shadow: 0 16px 40px rgb(0 0 0 / 28%);
+  color: var(--foreground);
+  color-scheme: dark;
+  background-color: var(--background);
+}
+
+html[data-theme="dark"]:has(.app-shell) {
+  scrollbar-color: #514a63 #15131e;
+}
+
+html[data-theme="dark"]:has(.app-shell) body {
+  background-color: #15131e;
+  color: #f1edf9;
+}
+
+html[data-theme="dark"]:has(.app-shell) ::selection {
+  background: rgb(170 152 232 / 45%);
+  color: #fff;
+}
+
+html[data-theme="dark"] .app-shell .content-background > div[aria-hidden="true"] {
+  background:
+    radial-gradient(ellipse 80% 60% at 8% 8%, rgb(109 79 158 / 24%), transparent 62%),
+    radial-gradient(ellipse 70% 55% at 82% 38%, rgb(68 74 125 / 23%), transparent 64%),
+    radial-gradient(ellipse 70% 55% at 15% 85%, rgb(95 50 106 / 20%), transparent 64%),
+    linear-gradient(180deg, #171521 0%, #14121b 100%) !important;
+}
+
+html[data-theme="dark"] .app-shell .brand-mark {
+  border-color: rgb(180 162 235 / 32%);
+  background: rgb(170 152 232 / 17%);
+  color: #c8baff;
+}
+
+html[data-theme="dark"] .app-shell .button--secondary,
+html[data-theme="dark"] .app-shell .alert-dialog-button--cancel {
+  border-color: var(--border);
+  background: var(--card);
+  color: var(--secondary-foreground);
+}
+
+html[data-theme="dark"] .app-shell .button--secondary:hover:not(:disabled),
+html[data-theme="dark"] .app-shell .alert-dialog-button--cancel:hover {
+  border-color: #766b91;
+  background: var(--secondary);
+  color: var(--foreground);
+}
+
+html[data-theme="dark"] .app-shell .button--ghost {
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .app-shell .button--ghost:hover:not(:disabled) {
+  border-color: rgb(170 152 232 / 22%);
+  background: rgb(170 152 232 / 14%);
+  color: var(--foreground);
+}
+
+html[data-theme="dark"] .app-shell .button--danger {
+  border-color: rgb(255 120 144 / 28%);
+  background: #43242f;
+  color: #ffc0cb;
+}
+
+html[data-theme="dark"] .app-shell .button--danger:hover:not(:disabled) {
+  background: #56303d;
+}
+
+html[data-theme="dark"] .app-shell .interactive-hover-button {
+  border-color: var(--border);
+  background: var(--card);
+  color: var(--secondary-foreground);
+}
+
+html[data-theme="dark"] .app-shell .interactive-hover-button__icon {
+  color: #c2b2fb;
+}
+
+html[data-theme="dark"] .app-shell .interactive-hover-button__hover-label {
+  color: var(--primary-foreground);
+}
+
+html[data-theme="dark"] .app-shell .profile-switch:hover {
+  background: #9785d4;
+}
+
+html[data-theme="dark"] .app-shell .stats-row {
+  border-color: var(--glass-border);
+  background: var(--glass);
+  box-shadow: 0 12px 34px rgb(0 0 0 / 22%);
+}
+
+html[data-theme="dark"] .app-shell .stat-card {
+  border-right-color: rgb(194 181 223 / 16%);
+}
+
+html[data-theme="dark"] .app-shell .stat-card:hover,
+html[data-theme="dark"] .app-shell .stat-card--active {
+  background: rgb(170 152 232 / 13%);
+}
+
+html[data-theme="dark"] .app-shell .stat-icon--sand,
+html[data-theme="dark"] .app-shell .status-defaults__icon--planned,
+html[data-theme="dark"] .app-shell .activity-status-group__icon--planned {
+  border-color: rgb(193 171 255 / 24%);
+  background: #38304e;
+  color: #d2c3ff;
+}
+
+html[data-theme="dark"] .app-shell .stat-icon--blue,
+html[data-theme="dark"] .app-shell .status-defaults__icon--inProgress,
+html[data-theme="dark"] .app-shell .activity-status-group__icon--inProgress {
+  border-color: rgb(142 192 255 / 24%);
+  background: #26374a;
+  color: #b9d9ff;
+}
+
+html[data-theme="dark"] .app-shell .stat-icon--green,
+html[data-theme="dark"] .app-shell .status-defaults__icon--complete,
+html[data-theme="dark"] .app-shell .activity-status-group__icon--complete {
+  border-color: rgb(145 219 169 / 24%);
+  background: #263d32;
+  color: #b8e8c5;
+}
+
+html[data-theme="dark"] .app-shell .heading-count {
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .app-shell .filters-panel,
+html[data-theme="dark"] .app-shell .status-defaults__content,
+html[data-theme="dark"] .app-shell .completed-section__toggle,
+html[data-theme="dark"] .app-shell .empty-state {
+  border-color: var(--border);
+  background: rgb(33 30 46 / 88%);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 16%);
+}
+
+html[data-theme="dark"] .app-shell .search-with-category,
+html[data-theme="dark"] .app-shell .search-with-category__chevron,
+html[data-theme="dark"] .app-shell .status-defaults > summary {
+  color: #c4b4f6;
+}
+
+html[data-theme="dark"] .app-shell .search-with-category__category-wrap,
+html[data-theme="dark"] .app-shell .status-defaults__option,
+html[data-theme="dark"] .app-shell .activity-status-group,
+html[data-theme="dark"] .app-shell .expanding-card__toolbar {
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .app-shell .search-with-category__input::placeholder,
+html[data-theme="dark"] .app-shell .form-field input::placeholder,
+html[data-theme="dark"] .app-shell .form-field textarea::placeholder {
+  color: #aaa2bb;
+}
+
+html[data-theme="dark"] .app-shell .status-defaults > summary:hover,
+html[data-theme="dark"] .app-shell .activity-status-group > summary:hover {
+  background: rgb(170 152 232 / 12%);
+  color: var(--foreground);
+}
+
+html[data-theme="dark"] .app-shell .status-defaults__switch {
+  background: #514a63;
+}
+
+html[data-theme="dark"] .app-shell .status-defaults__switch::after {
+  background: #f5f1ff;
+}
+
+html[data-theme="dark"] .app-shell .status-defaults__content > p,
+html[data-theme="dark"] .app-shell .status-defaults__hint,
+html[data-theme="dark"] .app-shell .activity-status-group__count,
+html[data-theme="dark"] .app-shell .cards-footnote,
+html[data-theme="dark"] .app-shell .loading-state,
+html[data-theme="dark"] .app-shell .empty-state p,
+html[data-theme="dark"] .app-shell .footer-links a,
+html[data-theme="dark"] .app-shell .footer-note {
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .app-shell .activity-status-group__title,
+html[data-theme="dark"] .app-shell .empty-state h3,
+html[data-theme="dark"] .app-shell .footer-scroll-top {
+  color: var(--foreground);
+}
+
+html[data-theme="dark"] .app-shell .completed-section__toggle {
+  color: var(--foreground);
+}
+
+html[data-theme="dark"] .app-shell .completed-section__toggle:hover,
+html[data-theme="dark"] .app-shell .completed-section__toggle[aria-expanded="true"] {
+  border-color: #766b91;
+  background: #302a40;
+}
+
+html[data-theme="dark"] .app-shell .completed-section__count {
+  border-color: rgb(195 177 245 / 25%);
+  background: #38304e;
+  color: #d2c3ff;
+}
+
+html[data-theme="dark"] .app-shell .expanding-card {
+  border-color: #40394e;
+  background: #211e2b;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 26%);
+}
+
+html[data-theme="dark"] .app-shell .expanding-card.is-expanded {
+  border-color: #796c9b;
+  box-shadow: 0 18px 38px rgb(0 0 0 / 34%);
+}
+
+html[data-theme="dark"] .app-shell .expanding-card__cover {
+  background-color: #39334c;
+}
+
+html[data-theme="dark"] .app-shell .expanding-card__toolbar {
+  background: #211e2b;
+}
+
+html[data-theme="dark"] .app-shell .status-select {
+  background: #302b3d;
+  color: var(--foreground);
+}
+
+html[data-theme="dark"] .app-shell .card-icon-button--danger:hover:not(:disabled) {
+  color: #ff9aaa;
+}
+
+html[data-theme="dark"] .app-shell .card-action-link,
+html[data-theme="dark"] .app-shell .empty-icon {
+  color: #c7b8fa;
+}
+
+html[data-theme="dark"] .app-shell .card-action-link:hover {
+  background: var(--secondary);
+}
+
+html[data-theme="dark"] .app-shell .empty-icon {
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .app-shell .callout--info {
+  --callout-accent: #aa98e8;
+  --callout-background: #302a43;
+  --callout-foreground: #e5dcff;
+}
+
+html[data-theme="dark"] .app-shell .callout--success {
+  --callout-accent: #72bd8b;
+  --callout-background: #253a30;
+  --callout-foreground: #d4f1dc;
+}
+
+html[data-theme="dark"] .app-shell .callout--warning {
+  --callout-accent: #e3ae62;
+  --callout-background: #403322;
+  --callout-foreground: #f7e3c1;
+}
+
+html[data-theme="dark"] .app-shell .callout--danger {
+  --callout-accent: #ee8194;
+  --callout-background: #412832;
+  --callout-foreground: #ffe0e5;
+}
+
+html[data-theme="dark"] .app-shell .footer {
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .app-shell .footer-links a:hover {
+  color: #e6ddff;
+}
+
+html[data-theme="dark"] .app-shell .activity-dialog {
+  border-color: #514964;
+  background: rgb(33 30 45 / 98%);
+  box-shadow: 0 30px 90px rgb(0 0 0 / 48%);
+}
+
+html[data-theme="dark"] .app-shell .activity-dialog::backdrop,
+html[data-theme="dark"] .alert-dialog-overlay {
+  background: rgb(7 6 11 / 72%);
+}
+
+html[data-theme="dark"] .alert-dialog-content {
+  --foreground: #f1edf9;
+  --text-secondary: #c4bdd3;
+  --secondary: #383149;
+  --secondary-foreground: #ece6ff;
+  --border: #453e56;
+  --ring: #c0afff;
+  color-scheme: dark;
+  border-color: #514964;
+  background: rgb(33 30 45 / 98%);
+  box-shadow: 0 28px 80px rgb(0 0 0 / 52%);
+}
+
+html[data-theme="dark"] .app-shell .delete-confirmation__icon {
+  background: #462631;
+  color: #ffadba;
+}
+
+html[data-theme="dark"] .alert-dialog-button--action {
+  border-color: #ba4b65;
+  background: #ba4b65;
+  color: #fff;
+}
+
+html[data-theme="dark"] .alert-dialog-button--action:hover {
+  border-color: #d25b76;
+  background: #d25b76;
+}
+
+html[data-theme="dark"] .app-shell .required-mark {
+  color: #ff9aaa;
+}
+
+html[data-theme="dark"] .app-shell .form-field input,
+html[data-theme="dark"] .app-shell .form-field textarea,
+html[data-theme="dark"] .app-shell .form-field select,
+html[data-theme="dark"] .app-shell .scheduler__frequency select,
+html[data-theme="dark"] .app-shell .scheduler__frequency input {
+  border-color: var(--input);
+  background: #282434;
+  color: var(--foreground);
+}
+
+html[data-theme="dark"] .app-shell .form-field input:focus,
+html[data-theme="dark"] .app-shell .form-field textarea:focus,
+html[data-theme="dark"] .app-shell .form-field select:focus {
+  background: #302b3e;
+}
+
+html[data-theme="dark"] .app-shell .form-field select,
+html[data-theme="dark"] .app-shell .status-filter,
+html[data-theme="dark"] .app-shell .status-select,
+html[data-theme="dark"] .app-shell .search-with-category__category {
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] .app-shell .search-with-category__category option,
+html[data-theme="dark"] .app-shell .status-filter option,
+html[data-theme="dark"] .app-shell .status-select option,
+html[data-theme="dark"] .app-shell .form-field select option {
+  background: #211e2d;
+  color: #f1edf9;
+}
+
+html[data-theme="dark"] .app-shell .scheduler {
+  border-color: var(--border);
+  background: #201d2a;
+}
+
+html[data-theme="dark"] .app-shell .scheduler__switch {
+  background: #514a63;
+}
+
+html[data-theme="dark"] .app-shell .scheduler__day {
+  border-color: var(--border);
+  background: #302b3e;
+  color: #e2dcef;
+}
+
+html[data-theme="dark"] .app-shell .scheduler__day.is-selected {
+  border-color: #8877bb;
+  background: #443a5e;
+  color: #f2edff;
+}
+
+html[data-theme="dark"] .app-shell .dialog-actions,
+html[data-theme="dark"] .app-shell .optional-fields {
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .app-shell .toast-note {
+  box-shadow: 0 14px 36px rgb(0 0 0 / 38%);
+}
