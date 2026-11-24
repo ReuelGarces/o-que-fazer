@@ -52,6 +52,7 @@ import { ExpandingCards } from "@/components/ui/expanding-cards";
 import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button";
 import { SearchWithCategory } from "@/components/ui/search-with-category";
 import { Component as Scheduler } from "@/components/ui/scheduler";
+import SkyToggle from "@/components/ui/sky-toggle";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -92,6 +93,62 @@ function statusGroupPreferenceKey(profileId: string) {
 
 const STATUS_GROUP_PREFERENCES_EVENT = "o-que-fazer:status-group-preferences-change";
 const DEFAULT_STATUS_GROUPS_SNAPSHOT = JSON.stringify(DEFAULT_STATUS_GROUPS);
+const THEME_PREFERENCE_KEY = "o-que-fazer:theme:v1";
+const THEME_PREFERENCE_EVENT = "o-que-fazer:theme-preference-change";
+type ThemePreference = "light" | "dark";
+let themePreferenceFallback: ThemePreference = "light";
+
+function readThemePreferenceSnapshot(key: string): ThemePreference {
+  try {
+    const preference = window.localStorage.getItem(key);
+    if (preference === "light" || preference === "dark") return preference;
+  } catch {
+    // Use the in-memory preference if browser storage is unavailable.
+  }
+  return themePreferenceFallback;
+}
+
+function applyThemePreference(preference: ThemePreference) {
+  if (preference === "dark") {
+    document.documentElement.dataset.theme = "dark";
+  } else {
+    delete document.documentElement.dataset.theme;
+  }
+}
+
+function subscribeThemePreferences(key: string, onChange: () => void) {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== key && event.key !== null) return;
+    themePreferenceFallback = event.key === null || event.newValue !== "dark" ? "light" : "dark";
+    applyThemePreference(themePreferenceFallback);
+    onChange();
+  };
+  const onSameTabChange = (event: Event) => {
+    const detail = (event as CustomEvent<{ key: string; preference: ThemePreference }>).detail;
+    if (detail?.key !== key) return;
+    themePreferenceFallback = detail.preference;
+    applyThemePreference(themePreferenceFallback);
+    onChange();
+  };
+
+  window.addEventListener("storage", onStorage);
+  window.addEventListener(THEME_PREFERENCE_EVENT, onSameTabChange);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener(THEME_PREFERENCE_EVENT, onSameTabChange);
+  };
+}
+
+function writeThemePreference(key: string, preference: ThemePreference) {
+  themePreferenceFallback = preference;
+  applyThemePreference(preference);
+  try {
+    window.localStorage.setItem(key, preference);
+  } catch {
+    // The current page still changes theme when storage is unavailable.
+  }
+  window.dispatchEvent(new CustomEvent(THEME_PREFERENCE_EVENT, { detail: { key, preference } }));
+}
 
 function readStatusGroupPreferenceSnapshot(key: string) {
   try {
@@ -417,6 +474,20 @@ function ActivitiesAppContent({ profile }: { profile: Profile }) {
     getGroupPreferencesSnapshot,
     () => DEFAULT_STATUS_GROUPS_SNAPSHOT,
   );
+  const subscribeToThemePreferences = useCallback(
+    (onChange: () => void) => subscribeThemePreferences(THEME_PREFERENCE_KEY, onChange),
+    [],
+  );
+  const getThemePreferenceSnapshot = useCallback(
+    () => readThemePreferenceSnapshot(THEME_PREFERENCE_KEY),
+    [],
+  );
+  const themePreferenceSnapshot = useSyncExternalStore(
+    subscribeToThemePreferences,
+    getThemePreferenceSnapshot,
+    () => "light" as ThemePreference,
+  );
+  const nightMode = themePreferenceSnapshot === "dark";
   const storedGroupDefaults = useMemo(
     () => parseStatusGroupPreferences(groupPreferencesSnapshot),
     [groupPreferencesSnapshot],
@@ -437,6 +508,10 @@ function ActivitiesAppContent({ profile }: { profile: Profile }) {
 
   function showNotice(message: string, tone: CalloutTone = "success") {
     setNotice({ message, tone });
+  }
+
+  function changeTheme(enabled: boolean) {
+    writeThemePreference(THEME_PREFERENCE_KEY, enabled ? "dark" : "light");
   }
 
   useEffect(() => {
@@ -599,6 +674,7 @@ function ActivitiesAppContent({ profile }: { profile: Profile }) {
                 <span className="profile-switch-chevron"><ChevronDown size={16} aria-hidden="true" /></span>
               </Link>
             </div>
+            <SkyToggle checked={nightMode} onChange={changeTheme} />
             <Button disabled={busy} variant="ghost" onClick={async () => {
               try { await api("logout", { method: "POST" }); router.replace("/login"); router.refresh(); }
               catch (error) { showNotice(error instanceof Error ? error.message : "Não foi possível sair.", "danger"); }
