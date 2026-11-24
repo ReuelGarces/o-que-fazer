@@ -53,6 +53,7 @@ import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button
 import { SearchWithCategory } from "@/components/ui/search-with-category";
 import { Component as Scheduler } from "@/components/ui/scheduler";
 import SkyToggle from "@/components/ui/sky-toggle";
+import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -669,12 +670,66 @@ function ActivitiesAppContent({ profile }: { profile: Profile }) {
           <nav aria-label="Ações da lista" className="topbar-actions">
             <div className="profile-control">
               <ProfileOrb avatar={profile.avatar} size={42} />
-              <Link aria-label={`${profile.name} · Trocar perfil`} aria-disabled={busy} onClick={(event) => { if (busy) event.preventDefault(); }} prefetch={false} className="profile-switch" href="/profiles">
-                <span className="profile-switch-name">{profile.name}</span>
-                <span className="profile-switch-chevron"><ChevronDown size={16} aria-hidden="true" /></span>
-              </Link>
+              <DropdownMenu
+                className="profile-menu"
+                disabled={busy}
+                label={`Preferências de ${profile.name}`}
+                trigger={(
+                  <>
+                    <span className="profile-menu__name">{profile.name}</span>
+                    <span className="profile-menu__chevron"><ChevronDown aria-hidden="true" size={16} /></span>
+                  </>
+                )}
+                triggerClassName="profile-menu__trigger"
+              >
+                <div className="profile-menu__content">
+                  <div className="profile-menu__theme-row">
+                    <div className="profile-menu__theme-copy">
+                      <strong>Aparência</strong>
+                      <span>Modo noturno</span>
+                    </div>
+                    <SkyToggle checked={nightMode} onChange={changeTheme} />
+                  </div>
+                  <div aria-hidden="true" className="profile-menu__divider" />
+                  <details className="status-defaults profile-menu__defaults">
+                    <summary>
+                      <span><SlidersHorizontal aria-hidden="true" size={15} /> Abertura padrão</span>
+                      <ChevronDown aria-hidden="true" size={16} />
+                    </summary>
+                    <div className="status-defaults__content">
+                      <p>Escolha quais grupos começam abertos quando você voltar à lista.</p>
+                      <div className="status-defaults__options">
+                        {STATUS_GROUPS.map((group) => {
+                          const Icon = group.icon;
+                          return (
+                            <label className="status-defaults__option" key={group.id}>
+                              <span className={`status-defaults__icon status-defaults__icon--${group.id}`}>
+                                <Icon aria-hidden="true" size={15} />
+                              </span>
+                              <span className="status-defaults__label">{group.label}</span>
+                              <span className="status-defaults__hint">Abrir por padrão</span>
+                              <input
+                                aria-label={`Abrir ${group.label} por padrão`}
+                                checked={groupDefaults[group.id]}
+                                onChange={(event) => updateGroupDefault(group.id, event.target.checked)}
+                                role="switch"
+                                type="checkbox"
+                              />
+                              <span aria-hidden="true" className="status-defaults__switch" />
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </details>
+                  <div aria-hidden="true" className="profile-menu__divider" />
+                  <Link className="profile-menu__link" href="/profiles" prefetch={false}>
+                    <span>Trocar perfil</span>
+                    <ArrowRight aria-hidden="true" size={15} />
+                  </Link>
+                </div>
+              </DropdownMenu>
             </div>
-            <SkyToggle checked={nightMode} onChange={changeTheme} />
             <Button disabled={busy} variant="ghost" onClick={async () => {
               try { await api("logout", { method: "POST" }); router.replace("/login"); router.refresh(); }
               catch (error) { showNotice(error instanceof Error ? error.message : "Não foi possível sair.", "danger"); }
@@ -796,37 +851,6 @@ function ActivitiesAppContent({ profile }: { profile: Profile }) {
                   </select>
                 </label>
               </div>
-              <details className="status-defaults">
-                <summary>
-                  <span><SlidersHorizontal aria-hidden="true" size={15} /> Abertura padrão</span>
-                  <ChevronDown aria-hidden="true" size={16} />
-                </summary>
-                <div className="status-defaults__content">
-                  <p>Escolha quais grupos começam abertos quando você voltar à lista.</p>
-                  <div className="status-defaults__options">
-                    {STATUS_GROUPS.map((group) => {
-                      const Icon = group.icon;
-                      return (
-                        <label className="status-defaults__option" key={group.id}>
-                          <span className={`status-defaults__icon status-defaults__icon--${group.id}`}>
-                            <Icon aria-hidden="true" size={15} />
-                          </span>
-                          <span className="status-defaults__label">{group.label}</span>
-                          <span className="status-defaults__hint">Abrir por padrão</span>
-                          <input
-                            aria-label={`Abrir ${group.label} por padrão`}
-                            checked={groupDefaults[group.id]}
-                            onChange={(event) => updateGroupDefault(group.id, event.target.checked)}
-                            role="switch"
-                            type="checkbox"
-                          />
-                          <span aria-hidden="true" className="status-defaults__switch" />
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              </details>
             </>
           )}
 
