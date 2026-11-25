@@ -29,6 +29,7 @@ import {
 } from "@/lib/activities";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { AnimatedDropdown } from "@/components/ui/animated-dropdown";
 
 type ExpandingCardsProps = {
   activities: ActivityCard[];
@@ -193,25 +194,15 @@ export function ExpandingCards({
                 <Icon aria-hidden="true" size={15} strokeWidth={1.5} />
                 {activity.category}
               </span>
-              <span className={cn("status-mark", status.className)}>
-                <StatusIcon aria-hidden="true" size={14} strokeWidth={1.6} />
-                <span aria-hidden="true">{activity.status}</span>
-                <select
-                  aria-label={`Alterar status na capa de ${activity.title}`}
-                  className="status-mark__select"
-                  disabled={activity.isHistory && !activity.canReopen}
-                  onChange={(event) =>
-                    onStatusChange(activity, event.target.value as ActivityStatus)
-                  }
-                  value={activity.status}
-                >
-                  {ACTIVITY_STATUSES.map((statusOption) => (
-                    <option key={statusOption} value={statusOption}>
-                      {statusOption}
-                    </option>
-                  ))}
-                </select>
-              </span>
+              <AnimatedDropdown
+                ariaLabel={`Alterar status na capa de ${activity.title}`}
+                className={status.className}
+                disabled={activity.isHistory && !activity.canReopen}
+                leadingIcon={StatusIcon}
+                onChange={(nextStatus) => onStatusChange(activity, nextStatus)}
+                options={ACTIVITY_STATUSES}
+                value={activity.status}
+              />
             </div>
 
             <div
