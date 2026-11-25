@@ -162,17 +162,6 @@ export function ExpandingCards({
                 className="expanding-card__visual"
                 style={photoStyle}
               />
-              <span className="expanding-card__topline">
-                <span className={cn("category-mark", categoryStyles[activity.category])}>
-                  <Icon aria-hidden="true" size={15} strokeWidth={1.5} />
-                  {activity.category}
-                </span>
-                <span className={cn("status-mark", status.className)}>
-                  <StatusIcon aria-hidden="true" size={14} strokeWidth={1.6} />
-                  {activity.status}
-                </span>
-              </span>
-
               <span className="expanding-card__bottomline">
                 <span className="expanding-card__title">{activity.title}</span>
                 {isExpanded && (
@@ -198,6 +187,32 @@ export function ExpandingCards({
                 )}
               </span>
             </button>
+
+            <div className="expanding-card__topline">
+              <span className={cn("category-mark", categoryStyles[activity.category])}>
+                <Icon aria-hidden="true" size={15} strokeWidth={1.5} />
+                {activity.category}
+              </span>
+              <span className={cn("status-mark", status.className)}>
+                <StatusIcon aria-hidden="true" size={14} strokeWidth={1.6} />
+                <span aria-hidden="true">{activity.status}</span>
+                <select
+                  aria-label={`Alterar status na capa de ${activity.title}`}
+                  className="status-mark__select"
+                  disabled={activity.isHistory && !activity.canReopen}
+                  onChange={(event) =>
+                    onStatusChange(activity, event.target.value as ActivityStatus)
+                  }
+                  value={activity.status}
+                >
+                  {ACTIVITY_STATUSES.map((statusOption) => (
+                    <option key={statusOption} value={statusOption}>
+                      {statusOption}
+                    </option>
+                  ))}
+                </select>
+              </span>
+            </div>
 
             <div
               className="expanding-card__toolbar"
