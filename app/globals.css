@@ -1552,6 +1552,7 @@ summary:focus-visible {
   justify-content: center;
   padding: 0 9px;
   cursor: pointer;
+  pointer-events: auto;
   background: rgba(34, 31, 51, 0.45);
   color: #ffffff;
   font-size: 10px;
@@ -1581,6 +1582,7 @@ summary:focus-visible {
 }
 
 .animated-dropdown__menu {
+  position: fixed;
   z-index: 1000;
   display: grid;
   overflow: hidden;
