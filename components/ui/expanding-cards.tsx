@@ -196,7 +196,7 @@ export function ExpandingCards({
               </span>
               <AnimatedDropdown
                 ariaLabel={`Alterar status na capa de ${activity.title}`}
-                className={status.className}
+                className={cn("status-mark", status.className)}
                 disabled={activity.isHistory && !activity.canReopen}
                 leadingIcon={StatusIcon}
                 onChange={(nextStatus) => onStatusChange(activity, nextStatus)}
