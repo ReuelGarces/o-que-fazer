@@ -7,6 +7,7 @@ import { AnimatedDropdown } from "@/components/ui/animated-dropdown";
 interface ComponentProps {
   isRepeating: boolean;
   toggleRepeating: () => void;
+  getPortalContainer: () => HTMLElement | null;
   repeatInterval: Exclude<RecurrenceFrequency, "none">;
   setRepeatInterval: (interval: Exclude<RecurrenceFrequency, "none">) => void;
   recurrenceInterval: number;
@@ -23,6 +24,7 @@ const frequencyLabels: Record<Exclude<RecurrenceFrequency, "none">, string> = {
 export function Component({
   isRepeating,
   toggleRepeating,
+  getPortalContainer,
   repeatInterval,
   setRepeatInterval,
   recurrenceInterval,
@@ -54,6 +56,7 @@ export function Component({
             ariaLabel="Frequência da atividade"
             className="scheduler__select"
             disabled={!isRepeating}
+            getPortalContainer={getPortalContainer}
             id="activity-repeat-interval"
             onChange={setRepeatInterval}
             options={Object.entries(frequencyLabels).map(([value, label]) => ({

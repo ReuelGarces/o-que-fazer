@@ -232,6 +232,8 @@ function ActivityDialog({
     };
   }, []);
 
+  const getDropdownPortalContainer = useCallback(() => dialogRef.current, []);
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (savingRef.current) return;
@@ -306,6 +308,7 @@ function ActivityDialog({
             <AnimatedDropdown<ActivityCategory>
               ariaLabel="Categoria da atividade"
               className="form-field__select"
+              getPortalContainer={getDropdownPortalContainer}
               id="activity-category"
               onChange={setCategory}
               options={ACTIVITY_CATEGORIES}
@@ -318,6 +321,7 @@ function ActivityDialog({
             <AnimatedDropdown<ActivityStatus>
               ariaLabel="Status da atividade"
               className="form-field__select"
+              getPortalContainer={getDropdownPortalContainer}
               id="activity-status"
               onChange={setStatus}
               options={ACTIVITY_STATUSES}
@@ -326,6 +330,7 @@ function ActivityDialog({
           </label>
 
           <Scheduler
+            getPortalContainer={getDropdownPortalContainer}
             isRepeating={isRepeating}
             recurrenceInterval={recurrenceInterval}
             repeatInterval={repeatInterval}

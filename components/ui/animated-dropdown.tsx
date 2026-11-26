@@ -37,6 +37,7 @@ type AnimatedDropdownProps<Value extends string> = {
   className?: string;
   defaultValue?: Value;
   disabled?: boolean;
+  getPortalContainer?: () => HTMLElement | null;
   id?: string;
   leadingIcon?: LucideIcon;
   name?: string;
@@ -76,6 +77,7 @@ export function AnimatedDropdown<Value extends string>({
   className,
   defaultValue,
   disabled = false,
+  getPortalContainer,
   id,
   leadingIcon: LeadingIcon,
   name,
@@ -188,7 +190,9 @@ export function AnimatedDropdown<Value extends string>({
   const openMenu = useCallback(() => {
     const trigger = triggerRef.current;
     if (!trigger || normalizedOptions.length === 0) return;
-    setPortalContainer(trigger.closest("dialog") ?? document.body);
+    setPortalContainer(
+      getPortalContainer?.() ?? trigger.closest("dialog") ?? document.body,
+    );
     setActiveIndex(
       Math.max(
         0,
@@ -199,7 +203,7 @@ export function AnimatedDropdown<Value extends string>({
     );
     updatePosition();
     setIsOpen(true);
-  }, [currentValue, normalizedOptions, updatePosition]);
+  }, [currentValue, getPortalContainer, normalizedOptions, updatePosition]);
 
   const closeMenu = useCallback((restoreFocus = false) => {
     setIsOpen(false);
