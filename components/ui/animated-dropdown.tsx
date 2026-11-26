@@ -28,6 +28,7 @@ type MenuPosition = {
   top: number;
   width: number;
   maxHeight: number;
+  positioning: "absolute" | "fixed";
 };
 
 type AnimatedDropdownProps<Value extends string> = {
@@ -108,6 +109,7 @@ export function AnimatedDropdown<Value extends string>({
     normalizedOptions[0];
   const selectedLabel = selectedOption?.label ?? "";
   const [isOpen, setIsOpen] = useState(false);
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
   const [activeIndex, setActiveIndex] = useState(() =>
     Math.max(
       0,
@@ -121,6 +123,14 @@ export function AnimatedDropdown<Value extends string>({
     if (!trigger) return;
 
     const bounds = trigger.getBoundingClientRect();
+    const dialog = trigger.closest("dialog");
+    const dialogBounds = dialog?.getBoundingClientRect();
+    const containerLeft =
+      dialog && dialogBounds ? dialogBounds.left + dialog.clientLeft : 0;
+    const containerTop =
+      dialog && dialogBounds ? dialogBounds.top + dialog.clientTop : 0;
+    const containerWidth = dialog?.clientWidth ?? window.innerWidth;
+    const containerHeight = dialog?.clientHeight ?? window.innerHeight;
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
     if (context) context.font = '14px "DM Sans", Arial, sans-serif';
@@ -139,30 +149,46 @@ export function AnimatedDropdown<Value extends string>({
     );
     const width = Math.min(
       requestedWidth,
-      window.innerWidth - VIEWPORT_GUTTER * 2,
+      Math.max(
+        0,
+        Math.min(window.innerWidth, containerWidth) - VIEWPORT_GUTTER * 2,
+      ),
     );
-    const maxHeight = window.innerHeight - VIEWPORT_GUTTER * 2;
+    const maxHeight = Math.max(
+      0,
+      Math.min(window.innerHeight, containerHeight) - VIEWPORT_GUTTER * 2,
+    );
     const height = Math.min(
       normalizedOptions.length * MENU_ROW_HEIGHT + MENU_VERTICAL_PADDING,
       maxHeight,
     );
     const below = bounds.bottom + 8;
+    const visibleTop = containerTop + VIEWPORT_GUTTER;
+    const visibleBottom = containerTop + containerHeight - VIEWPORT_GUTTER;
     const top =
-      below + height <= window.innerHeight - VIEWPORT_GUTTER
+      below + height <= visibleBottom
         ? below
-        : Math.max(VIEWPORT_GUTTER, bounds.top - height - 8);
-    const minCenter = VIEWPORT_GUTTER + width / 2;
-    const maxCenter = window.innerWidth - VIEWPORT_GUTTER - width / 2;
+        : Math.max(visibleTop, bounds.top - height - 8);
+    const minCenter = containerLeft + VIEWPORT_GUTTER + width / 2;
+    const maxCenter = containerLeft + containerWidth - VIEWPORT_GUTTER - width / 2;
     const center = Math.max(
       minCenter,
       Math.min(bounds.left + bounds.width / 2, maxCenter),
     );
 
-    setPosition({ center, top, width, maxHeight });
+    setPosition({
+      center: dialog ? center - containerLeft + dialog.scrollLeft : center,
+      top: dialog ? top - containerTop + dialog.scrollTop : top,
+      width,
+      maxHeight,
+      positioning: dialog ? "absolute" : "fixed",
+    });
   }, [normalizedOptions]);
 
   const openMenu = useCallback(() => {
-    if (normalizedOptions.length === 0) return;
+    const trigger = triggerRef.current;
+    if (!trigger || normalizedOptions.length === 0) return;
+    setPortalContainer(trigger.closest("dialog") ?? document.body);
     setActiveIndex(
       Math.max(
         0,
@@ -259,7 +285,7 @@ export function AnimatedDropdown<Value extends string>({
   };
 
   const menu =
-    typeof document === "undefined"
+    !portalContainer
       ? null
       : createPortal(
           <AnimatePresence>
@@ -279,6 +305,7 @@ export function AnimatedDropdown<Value extends string>({
                   marginLeft: -position.width / 2,
                   maxHeight: position.maxHeight,
                   minWidth: position.width,
+                  position: position.positioning,
                   top: position.top,
                   transformOrigin: "top center",
                   width: position.width,
