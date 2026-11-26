@@ -48,6 +48,22 @@ jobs:
       - name: Integration tests
         run: npm run test:integration
 
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser tests
+        run: npm run test:ui
+        env:
+          UI_ARTIFACT_DIR: artifacts/browser
+
+      - name: Upload browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-test-artifacts
+          path: artifacts/browser
+          if-no-files-found: ignore
+
   docker:
     name: Docker Smoke Test
     runs-on: ubuntu-latest
