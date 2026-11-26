@@ -1669,6 +1669,7 @@ summary:focus-visible {
 .animated-dropdown__option[aria-selected="true"] svg {
   color: #665994;
 }
+.status-done {
   border-color: #287a4f;
   background: #287a4f;
   color: #ffffff;
