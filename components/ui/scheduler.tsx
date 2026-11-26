@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import type { RecurrenceFrequency } from "@/lib/activities";
+import { AnimatedDropdown } from "@/components/ui/animated-dropdown";
 
 interface ComponentProps {
   isRepeating: boolean;
@@ -49,16 +50,18 @@ export function Component({
       <div className={cn("scheduler__controls", !isRepeating && "is-disabled")}>
         <label className="scheduler__frequency" htmlFor="activity-repeat-interval">
           <span>Frequência</span>
-          <select
+          <AnimatedDropdown<Exclude<RecurrenceFrequency, "none">>
+            ariaLabel="Frequência da atividade"
+            className="scheduler__select"
             disabled={!isRepeating}
             id="activity-repeat-interval"
-            onChange={(event) => setRepeatInterval(event.target.value as Exclude<RecurrenceFrequency, "none">)}
+            onChange={setRepeatInterval}
+            options={Object.entries(frequencyLabels).map(([value, label]) => ({
+              value: value as Exclude<RecurrenceFrequency, "none">,
+              label,
+            }))}
             value={repeatInterval}
-          >
-            {Object.entries(frequencyLabels).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
+          />
         </label>
 
         {isRepeating && repeatInterval === "custom" && (

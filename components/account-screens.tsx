@@ -7,6 +7,7 @@ import { useState, useRef, type FormEvent } from "react";
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
+import { AnimatedDropdown } from "@/components/ui/animated-dropdown";
 import { api, type Profile } from "@/lib/api";
 
 const avatarNames = {
@@ -158,13 +159,16 @@ export function ProfilePicker({
                     </label>
                     <label className="form-field">
                       Avatar
-                      <select name="avatar" defaultValue={profile.avatar}>
-                        {Object.keys(avatarNames).map((key) => (
-                          <option key={key} value={key}>
-                            {avatarNames[key as keyof typeof avatarNames]}
-                          </option>
-                        ))}
-                      </select>
+                      <AnimatedDropdown<string>
+                        ariaLabel={"Avatar de " + profile.name}
+                        className="form-field__select"
+                        defaultValue={profile.avatar}
+                        name="avatar"
+                        options={Object.entries(avatarNames).map(([value, label]) => ({
+                          value,
+                          label,
+                        }))}
+                      />
                     </label>
                     <Button type="submit" variant="primary" disabled={busy}>
                       {busy ? "Salvando…" : "Salvar perfil"}

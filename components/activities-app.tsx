@@ -54,6 +54,7 @@ import { SearchWithCategory } from "@/components/ui/search-with-category";
 import { Component as Scheduler } from "@/components/ui/scheduler";
 import SkyToggle from "@/components/ui/sky-toggle";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
+import { AnimatedDropdown } from "@/components/ui/animated-dropdown";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,6 +68,10 @@ import {
 
 type CategoryFilter = ActivityCategory | "Todas";
 type StatusFilter = ActivityStatus | "Todos";
+const STATUS_FILTER_OPTIONS: readonly { value: StatusFilter; label: string }[] = [
+  { value: "Todos", label: "Todos os status" },
+  ...ACTIVITY_STATUSES.map((status) => ({ value: status, label: status })),
+];
 type ActivitySnapshot = {
   revision: number;
   activities: Activity[];
@@ -298,28 +303,26 @@ function ActivityDialog({
 
           <label className="form-field" htmlFor="activity-category">
             <span>Categoria</span>
-            <select
+            <AnimatedDropdown<ActivityCategory>
+              ariaLabel="Categoria da atividade"
+              className="form-field__select"
               id="activity-category"
-              onChange={(event) => setCategory(event.target.value as ActivityCategory)}
+              onChange={setCategory}
+              options={ACTIVITY_CATEGORIES}
               value={category}
-            >
-              {ACTIVITY_CATEGORIES.map((option) => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
+            />
           </label>
 
           <label className="form-field" htmlFor="activity-status">
             <span>Status</span>
-            <select
+            <AnimatedDropdown<ActivityStatus>
+              ariaLabel="Status da atividade"
+              className="form-field__select"
               id="activity-status"
-              onChange={(event) => setStatus(event.target.value as ActivityStatus)}
+              onChange={setStatus}
+              options={ACTIVITY_STATUSES}
               value={status}
-            >
-              {ACTIVITY_STATUSES.map((option) => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
+            />
           </label>
 
           <Scheduler
@@ -838,18 +841,16 @@ function ActivitiesAppContent({ profile }: { profile: Profile }) {
                   search={search}
                 />
 
-                <label className="status-filter-wrap">
-                  <Filter aria-hidden="true" size={14} />
-                  <select
-                    aria-label="Filtrar por status"
+                <div className="status-filter-wrap">
+                  <AnimatedDropdown<StatusFilter>
+                    ariaLabel="Filtrar por status"
                     className="status-filter"
-                    onChange={(event) => chooseStatusFilter(event.target.value as StatusFilter)}
+                    leadingIcon={Filter}
+                    onChange={chooseStatusFilter}
+                    options={STATUS_FILTER_OPTIONS}
                     value={statusFilter}
-                  >
-                    <option value="Todos">Todos os status</option>
-                    {ACTIVITY_STATUSES.map((statusOption) => <option key={statusOption} value={statusOption}>{statusOption}</option>)}
-                  </select>
-                </label>
+                  />
+                </div>
               </div>
             </>
           )}

@@ -12,7 +12,7 @@ import {
   Film,
   GraduationCap,
   MapPin,
-  MoreHorizontal,
+
   NotebookPen,
   Pencil,
   Repeat2,
@@ -210,25 +210,16 @@ export function ExpandingCards({
               hidden={!isExpanded}
               id={`activity-details-${cardKey}`}
             >
-                <label className="status-select-wrap">
-                  <span className="sr-only">Status de {activity.title}</span>
-                  <select
-                    aria-label={`Alterar status de ${activity.title}`}
+                                <div className="status-select-wrap">
+                  <AnimatedDropdown<ActivityStatus>
+                    ariaLabel={"Alterar status de " + activity.title}
                     className="status-select"
                     disabled={activity.isHistory && !activity.canReopen}
-                    onChange={(event) =>
-                      onStatusChange(activity, event.target.value as ActivityStatus)
-                    }
+                    onChange={(nextStatus) => onStatusChange(activity, nextStatus)}
+                    options={ACTIVITY_STATUSES}
                     value={activity.status}
-                  >
-                    {ACTIVITY_STATUSES.map((statusOption) => (
-                      <option key={statusOption} value={statusOption}>
-                        {statusOption}
-                      </option>
-                    ))}
-                  </select>
-                  <MoreHorizontal aria-hidden="true" size={15} />
-                </label>
+                  />
+                </div>
                 {activity.linkUrl && (
                   <a
                     aria-label={`Abrir link de ${activity.title} em uma nova aba`}
