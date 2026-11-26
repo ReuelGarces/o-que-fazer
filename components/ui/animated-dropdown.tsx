@@ -88,6 +88,7 @@ export function AnimatedDropdown<Value extends string>({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const focusRestoreFrameRef = useRef<number | null>(null);
   const menuId = useId();
   const triggerId = id ?? menuId + "-trigger";
   const reduceMotion = useReducedMotion();
@@ -190,6 +191,10 @@ export function AnimatedDropdown<Value extends string>({
   const openMenu = useCallback(() => {
     const trigger = triggerRef.current;
     if (!trigger || normalizedOptions.length === 0) return;
+    if (focusRestoreFrameRef.current !== null) {
+      window.cancelAnimationFrame(focusRestoreFrameRef.current);
+      focusRestoreFrameRef.current = null;
+    }
     setPortalContainer(
       getPortalContainer?.() ?? trigger.closest("dialog") ?? document.body,
     );
@@ -207,8 +212,23 @@ export function AnimatedDropdown<Value extends string>({
 
   const closeMenu = useCallback((restoreFocus = false) => {
     setIsOpen(false);
+    if (focusRestoreFrameRef.current !== null) {
+      window.cancelAnimationFrame(focusRestoreFrameRef.current);
+      focusRestoreFrameRef.current = null;
+    }
     if (restoreFocus) {
-      window.requestAnimationFrame(() => triggerRef.current?.focus());
+      focusRestoreFrameRef.current = window.requestAnimationFrame(() => {
+        focusRestoreFrameRef.current = null;
+        const activeElement = document.activeElement;
+        if (
+          !activeElement ||
+          activeElement === document.body ||
+          triggerRef.current?.contains(activeElement) ||
+          menuRef.current?.contains(activeElement)
+        ) {
+          triggerRef.current?.focus();
+        }
+      });
     }
   }, []);
 
@@ -240,7 +260,11 @@ export function AnimatedDropdown<Value extends string>({
     };
 
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") closeMenu(true);
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        closeMenu(true);
+      }
     };
 
     document.addEventListener("pointerdown", handlePointerDown);
@@ -349,7 +373,7 @@ export function AnimatedDropdown<Value extends string>({
               </motion.div>
             )}
           </AnimatePresence>,
-          document.body,
+          portalContainer,
         );
 
   return (
