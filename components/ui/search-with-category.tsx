@@ -1,8 +1,9 @@
 "use client";
 
-import { ChevronDown, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useId, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { AnimatedDropdown } from "@/components/ui/animated-dropdown";
 
 type SearchWithCategoryProps = {
   allCategoryLabel: string;
@@ -44,18 +45,17 @@ export function SearchWithCategory({
     >
       <div className="search-with-category__category-wrap">
         <label className="sr-only" htmlFor={categoryId}>Filtrar por categoria</label>
-        <select
+        <AnimatedDropdown<string>
+          ariaLabel="Filtrar por categoria"
           className="search-with-category__category"
           id={categoryId}
-          onChange={(event) => onCategoryChange(event.target.value)}
+          onChange={onCategoryChange}
+          options={[
+            { value: allCategoryValue, label: allCategoryLabel },
+            ...categories,
+          ]}
           value={category}
-        >
-          <option value={allCategoryValue}>{allCategoryLabel}</option>
-          {categories.map((option) => (
-            <option key={option.value} value={option.value}>{option.label}</option>
-          ))}
-        </select>
-        <ChevronDown aria-hidden="true" className="search-with-category__chevron" size={14} />
+        />
       </div>
 
       <div className="search-with-category__query">

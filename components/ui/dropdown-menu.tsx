@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   useEffect,
   useId,
@@ -27,6 +28,7 @@ export function DropdownMenu({
   disabled = false,
 }: DropdownMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuId = useId();
@@ -40,6 +42,12 @@ export function DropdownMenu({
       }
     }
 
+    function closeOnOutsideFocus(event: FocusEvent) {
+      if (event.target instanceof Node && !menuRef.current?.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
       event.preventDefault();
@@ -48,9 +56,11 @@ export function DropdownMenu({
     }
 
     document.addEventListener("pointerdown", closeOnOutsidePointer);
+    document.addEventListener("focusin", closeOnOutsideFocus);
     document.addEventListener("keydown", closeOnEscape);
     return () => {
       document.removeEventListener("pointerdown", closeOnOutsidePointer);
+      document.removeEventListener("focusin", closeOnOutsideFocus);
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [isOpen]);
@@ -71,15 +81,22 @@ export function DropdownMenu({
       >
         {trigger}
       </button>
-      <div
-        aria-label={label}
-        className="dropdown-menu__panel"
-        hidden={!isOpen}
-        id={menuId}
-        role="group"
-      >
-        {children}
-      </div>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            aria-label={label}
+            className="dropdown-menu__panel dropdown-panel-surface"
+            id={menuId}
+            initial={reduceMotion ? false : { opacity: 0, y: -10, scale: 0.95 }}
+            role="group"
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8, scale: 0.97 }}
+            transition={{ duration: reduceMotion ? 0 : 0.2, ease: "easeOut" }}
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
