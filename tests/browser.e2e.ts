@@ -443,7 +443,47 @@ test(
           () => document.documentElement.scrollWidth <= innerWidth,
         ),
       );
+      // The dedicated library uses the same profile-scoped activity data.
+      await page.getByRole("link", { name: "Livros", exact: true }).click();
+      await expect(page).toHaveURL(base + "/Livros");
+      await expect(page.getByRole("heading", { name: "Livros", exact: true })).toBeVisible();
+      await page.getByRole("button", { name: "Novo livro" }).click();
+      await page.getByLabel("Título", { exact: true }).fill("Livro de teste");
+      await page.getByRole("button", { name: "Salvar livro" }).click();
+      const want = page.locator('[data-slot="kanban-column"][data-value="Quero fazer"]');
+      const reading = page.locator('[data-slot="kanban-column"][data-value="Em andamento"]');
+      const read = page.locator('[data-slot="kanban-column"][data-value="Concluído"]');
+      await expect(want.getByText("Livro de teste", { exact: true })).toBeVisible();
+      await page.reload();
+      await expect(want.getByText("Livro de teste", { exact: true })).toBeVisible();
+      await page.getByLabel("Status de Livro de teste").selectOption("Em andamento");
+      await expect(reading.getByText("Livro de teste", { exact: true })).toBeVisible();
+      await capture("books-mobile.png");
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      const handle = await page.getByRole("button", { name: "Arrastar Livro de teste" }).boundingBox();
+      const target = await read.boundingBox();
+      assert.ok(handle && target);
+      await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 20 });
+      await page.mouse.up();
+      await expect(read.getByText("Livro de teste", { exact: true })).toBeVisible();
+      await page.reload();
+      await expect(read.getByText("Livro de teste", { exact: true })).toBeVisible();
+      await capture("books-desktop.png");
+      await page.getByRole("link", { name: "O que fazer?", exact: true }).click();
+      await page.locator(".profile-menu__trigger").click();
+      await page.getByRole("link", { name: /Trocar perfil/ }).click();
+      await page.getByRole("button", { name: "Novo nome", exact: true }).click();
+      await page.getByRole("link", { name: "Livros", exact: true }).click();
+      await expect(page.getByRole("button", { name: "Novo livro" })).toBeEnabled();
+      await expect(page.getByText("Livro de teste", { exact: true })).toHaveCount(0);
+      await page.getByRole("link", { name: "O que fazer?", exact: true }).click();
+      await page.setViewportSize({ width: 390, height: 844 });
       await page.getByRole("button", { name: "Sair", exact: true }).click();
+      await expect(page).toHaveURL(base + "/login");
+      await page.goto(base + "/Livros");
       await expect(page).toHaveURL(base + "/login");
       await capture("login-mobile.png");
       assert.deepEqual(errors, []);
