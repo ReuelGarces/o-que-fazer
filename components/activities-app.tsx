@@ -676,6 +676,7 @@ function ActivitiesAppContent({ profile }: { profile: Profile }) {
             <span>o que fazer<span className="brand-period">.</span></span>
           </a>
           <nav aria-label="Ações da lista" className="topbar-actions">
+            <Link href="/Livros" prefetch={false} className="button button--secondary button--default">Livros</Link>
             <div className="profile-control">
               <ProfileOrb avatar={profile.avatar} size={42} />
               <DropdownMenu
