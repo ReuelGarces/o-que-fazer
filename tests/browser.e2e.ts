@@ -449,6 +449,15 @@ test(
       await expect(page.getByRole("heading", { name: "Livros", exact: true })).toBeVisible();
       await page.getByRole("button", { name: "Novo livro" }).click();
       await page.getByLabel("Título", { exact: true }).fill("Livro de teste");
+      const formStatus = page.getByRole("combobox", { name: "Status do livro" });
+      await formStatus.click();
+      const formOptions = page.getByRole("listbox", { name: "Status do livro" });
+      await expect(formOptions.getByRole("option")).toHaveCount(3);
+      await formOptions.getByRole("option", { name: "Lendo", exact: true }).click();
+      await expect(formStatus).toHaveText("Lendo");
+      await formStatus.click();
+      await formOptions.getByRole("option", { name: "Quero ler", exact: true }).click();
+      await expect(formStatus).toHaveText("Quero ler");
       await page.getByRole("button", { name: "Salvar livro" }).click();
       const want = page.locator('[data-slot="kanban-column"][data-value="Quero fazer"]');
       const reading = page.locator('[data-slot="kanban-column"][data-value="Em andamento"]');
@@ -456,7 +465,11 @@ test(
       await expect(want.getByText("Livro de teste", { exact: true })).toBeVisible();
       await page.reload();
       await expect(want.getByText("Livro de teste", { exact: true })).toBeVisible();
-      await page.getByLabel("Status de Livro de teste").selectOption("Em andamento");
+      const bookStatus = page.getByRole("combobox", { name: "Status de Livro de teste" });
+      await bookStatus.press("ArrowDown");
+      const bookOptions = page.getByRole("listbox", { name: "Status de Livro de teste" });
+      await expect(bookOptions.getByRole("option")).toHaveCount(3);
+      await bookOptions.getByRole("option", { name: "Lendo", exact: true }).click();
       await expect(reading.getByText("Livro de teste", { exact: true })).toBeVisible();
       await capture("books-mobile.png");
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));

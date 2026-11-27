@@ -7,12 +7,14 @@ import { api, type Profile } from "@/lib/api";
 import { currentLocalDate, type Activity, type ActivityStatus } from "@/lib/activities";
 import { Kanban, KanbanBoard, KanbanColumn, KanbanColumnContent, KanbanItem, KanbanItemHandle, KanbanOverlay } from "@/components/ui/kanban";
 import { WavesBackground } from "@/components/ui/waves-background";
+import { AnimatedDropdown } from "@/components/ui/animated-dropdown";
 
 const COLUMNS = [
   { id: "Em andamento", title: "Lendo" },
   { id: "Quero fazer", title: "Quero ler" },
   { id: "Concluído", title: "Lido" },
 ] as const;
+const STATUS_OPTIONS = COLUMNS.map(({ id, title }) => ({ value: id, label: title }));
 type Snapshot = { revision: number; activities: Activity[] };
 type Draft = { id?: string; title: string; description: string; status: ActivityStatus; imageUrl: string; linkUrl: string };
 const makeDraft = (status: ActivityStatus = "Quero fazer"): Draft => ({ title: "", description: "", status, imageUrl: "", linkUrl: "" });
@@ -153,7 +155,18 @@ export function BooksApp({ profile }: { profile: Profile }) {
       {draft && <form onSubmit={save} className="mb-5 grid gap-3 rounded-md border border-[#e2d6df] bg-[#FFF5EB] p-4 shadow-xs sm:grid-cols-2">
         <h2 className="text-base font-semibold sm:col-span-2">{draft.id ? "Editar livro" : "Cadastrar livro"}</h2>
         <label className="grid gap-1 text-sm font-medium">Título<input autoFocus className={control} required maxLength={120} value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} /></label>
-        <label className="grid gap-1 text-sm font-medium">Status<select className={control} value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value as ActivityStatus })}>{COLUMNS.map((column) => <option key={column.id} value={column.id}>{column.title}</option>)}</select></label>
+        <label className="grid gap-1 text-sm font-medium" htmlFor="book-status">
+          Status
+          <AnimatedDropdown<ActivityStatus>
+            id="book-status"
+            ariaLabel="Status do livro"
+            className={control + " w-full"}
+            disabled={busy}
+            options={STATUS_OPTIONS}
+            value={draft.status}
+            onChange={(status) => setDraft({ ...draft, status })}
+          />
+        </label>
         <label className="grid gap-1 text-sm font-medium sm:col-span-2">Autor e anotações<textarea className={control} rows={3} maxLength={2000} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></label>
         <label className="grid gap-1 text-sm font-medium">URL da capa (opcional)<input className={control} type="url" maxLength={4096} value={draft.imageUrl} onChange={(e) => setDraft({ ...draft, imageUrl: e.target.value })} /></label>
         <label className="grid gap-1 text-sm font-medium">Link externo (opcional)<input className={control} type="url" maxLength={4096} value={draft.linkUrl} onChange={(e) => setDraft({ ...draft, linkUrl: e.target.value })} /></label>
@@ -183,9 +196,14 @@ export function BooksApp({ profile }: { profile: Profile }) {
                       <KanbanItemHandle label={"Arrastar " + book.title} disabled={busy}><GripVertical size={16} aria-hidden="true" /></KanbanItemHandle>
                     </div>
                     <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
-                      <select aria-label={"Status de " + book.title} disabled={busy} className="max-w-full rounded border border-[#e2d6df] bg-white p-1 text-xs" value={book.status} onChange={(e) => void move(book.id, e.target.value)}>
-                        {COLUMNS.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
-                      </select>
+                      <AnimatedDropdown<ActivityStatus>
+                        ariaLabel={"Status de " + book.title}
+                        disabled={busy}
+                        className="max-w-full rounded border border-[#e2d6df] bg-white px-2 py-1 text-xs"
+                        options={STATUS_OPTIONS}
+                        value={book.status}
+                        onChange={(status) => void move(book.id, status)}
+                      />
                       <div className="flex items-center gap-1">
                         {book.linkUrl && <a href={book.linkUrl} target="_blank" rel="noreferrer noopener" aria-label={"Abrir link de " + book.title} className="rounded p-1 hover:bg-[#FFF5EB]"><ExternalLink size={14} /></a>}
                         <button type="button" disabled={busy} className="rounded p-1 hover:bg-[#FFF5EB]" aria-label={"Editar " + book.title} onClick={() => setDraft({ id: book.id, title: book.title, description: book.description, status: book.status, imageUrl: book.imageUrl, linkUrl: book.linkUrl })}><Pencil size={14} /></button>
